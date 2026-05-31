@@ -13,12 +13,10 @@ def create_app(test_config=None):
     app.config.from_object(Config)
     if test_config:
         app.config.update(test_config)
-    if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-            "execution_options": {
-                "schema_translate_map": {"usuarios_schema": None},
-            }
-        }
+    if not app.config["SQLALCHEMY_DATABASE_URI"]:
+        raise RuntimeError(
+            "DATABASE_URL no definido. Copia .env.example a .env y configura PostgreSQL."
+        )
 
     db.init_app(app)
     migrate.init_app(app, db)

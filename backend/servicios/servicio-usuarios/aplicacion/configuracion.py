@@ -16,11 +16,13 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(
         seconds=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "3600"))
     )
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL", f"sqlite:///{BASE_DIR / 'psicoconecta_users.db'}"
-    )
+    _database_url = os.getenv("DATABASE_URL", "")
+    if _database_url.startswith("postgresql://") and "+psycopg" not in _database_url:
+        _database_url = _database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+    SQLALCHEMY_DATABASE_URI = _database_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     DATABASE_SCHEMA = os.getenv("DATABASE_SCHEMA", "usuarios_schema")
+    DATABASE_POOL_SIZE = int(os.getenv("DATABASE_POOL_SIZE", "5"))
     COGNITO_ENABLED = os.getenv("COGNITO_ENABLED", "false").lower() == "true"
     AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
     COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID", "")

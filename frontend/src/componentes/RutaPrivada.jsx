@@ -7,8 +7,8 @@ export default function RutaPrivada() {
 
   if (cargando) {
     return (
-      <div className="grid min-h-screen place-items-center bg-arena-50 dark:bg-slate-950">
-        <span className="h-10 w-10 animate-spin rounded-full border-4 border-teal-100 border-t-bosque-600" />
+      <div className="grid min-h-screen place-items-center bg-slate-50 dark:bg-slate-950">
+        <span className="h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
       </div>
     );
   }

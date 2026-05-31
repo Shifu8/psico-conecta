@@ -80,7 +80,7 @@ PsicoConecta-main/
 
 ### 1. Servicio de usuarios
 
-La demostración puede ejecutarse con SQLite sin instalar Docker:
+La demostración local requiere PostgreSQL. Copia `backend/servicios/servicio-usuarios/.env.example` a `.env` antes de iniciar el servicio.
 
 ```powershell
 cd backend\servicios\servicio-usuarios

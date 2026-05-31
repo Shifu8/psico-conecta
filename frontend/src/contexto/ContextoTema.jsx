@@ -11,6 +11,7 @@ export function ProveedorTema({ children }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", oscuro);
+    document.documentElement.style.colorScheme = oscuro ? "dark" : "light";
     localStorage.setItem("psicoconecta_tema", oscuro ? "oscuro" : "claro");
   }, [oscuro]);
 

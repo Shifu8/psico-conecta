@@ -19,7 +19,7 @@ export default function RecuperarContrasena() {
       const { data } = await solicitarRecuperacion(email);
       setMensaje(data.message || "Revisa tu correo para continuar.");
     } catch (excepcion) {
-      setError(excepcion.response?.data?.message || "No fue posible solicitar la recuperacion.");
+      setError(excepcion.response?.data?.message || "No fue posible solicitar la recuperación.");
     } finally {
       setProcesando(false);
     }
@@ -33,15 +33,15 @@ export default function RecuperarContrasena() {
         Te enviaremos un enlace para restablecer tu contraseña.
       </p>
       <form onSubmit={enviar} className="mt-7 space-y-4">
-        <CampoFormulario etiqueta="Correo electrónico" type="email" value={email} onChange={(evento) => setEmail(evento.target.value)} required />
-        {mensaje && <p className="rounded-xl bg-teal-50 p-3 text-sm font-semibold text-teal-800 dark:bg-teal-950/50 dark:text-teal-200">{mensaje}</p>}
+        <CampoFormulario etiqueta="Correo electrónico" type="email" value={email} onChange={(evento) => setEmail(evento.target.value)} autoComplete="email" required />
+        {mensaje && <p className="rounded-xl bg-cyan-50 p-3 text-sm font-semibold text-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-200">{mensaje}</p>}
         {error && <p className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-200">{error}</p>}
         <button type="submit" className="boton-primario w-full" disabled={procesando}>
           <Mail size={18} />
           {procesando ? "Enviando..." : "Enviar enlace"}
         </button>
       </form>
-      <Link to="/iniciar-sesion" className="mt-6 block text-center text-sm font-bold text-bosque-600 dark:text-teal-300">
+      <Link to="/iniciar-sesion" className="mt-6 block text-center text-sm font-bold text-blue-600 dark:text-blue-300">
         Volver al inicio de sesión
       </Link>
     </>

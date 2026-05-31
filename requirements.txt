@@ -1,11 +1,5 @@
--r backend/requirements-comunes.txt
-Flask-Bcrypt==1.0.1
-Flask-JWT-Extended==4.7.1
-Flask-Migrate==4.1.0
-Flask-SQLAlchemy==3.1.1
-marshmallow==3.26.1
-email-validator==2.2.0
-python-dotenv==1.0.1
-google-api-python-client==2.160.0
-google-auth==2.38.0
-pytest==8.3.4
+-r backend/requirements/base.txt
+
+# Use backend/requirements/*.txt for service-specific dependencies.
+# Example:
+#   pip install -r backend/requirements/usuarios.txt

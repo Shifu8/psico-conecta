@@ -1,12 +1,10 @@
+import { GoogleLogin } from "@react-oauth/google";
 import { LogIn } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
 import CampoFormulario from "../../componentes/CampoFormulario";
 import { usarAutenticacion } from "../../contexto/ContextoAutenticacion";
-import {
-  rutaInicialPorRol,
-} from "../../servicios/servicioAutenticacion";
+import { rutaInicialPorRol } from "../../servicios/servicioAutenticacion";
 
 export default function InicioSesion() {
   const [formulario, setFormulario] = useState({ email: "", password: "" });
@@ -31,7 +29,7 @@ export default function InicioSesion() {
         replace: true,
       });
     } catch (excepcion) {
-      setError(excepcion.response?.data?.message || "No fue posible iniciar sesion.");
+      setError(excepcion.response?.data?.message || "No fue posible iniciar sesión.");
     } finally {
       setProcesando(false);
     }
@@ -49,7 +47,7 @@ export default function InicioSesion() {
 
       <form onSubmit={enviar} className="mt-7 space-y-4">
         <CampoFormulario
-          etiqueta="Correo electronico"
+          etiqueta="Correo electrónico"
           name="email"
           type="email"
           value={formulario.email}
@@ -58,7 +56,7 @@ export default function InicioSesion() {
           required
         />
         <CampoFormulario
-          etiqueta="Contrasena"
+          etiqueta="Contraseña"
           name="password"
           type="password"
           value={formulario.password}
@@ -68,7 +66,7 @@ export default function InicioSesion() {
         />
         {error && <p className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-200">{error}</p>}
         <div className="flex justify-end">
-          <Link to="/recuperar-contrasena" className="text-sm font-bold text-bosque-600 hover:text-bosque-700 dark:text-teal-300 dark:hover:text-teal-200">
+          <Link to="/recuperar-contrasena" className="text-sm font-bold text-blue-600 transition hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200">
             Olvidé mi contraseña
           </Link>
         </div>
@@ -84,9 +82,7 @@ export default function InicioSesion() {
         <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
       </div>
 
-      {googleError && (
-        <p className="mb-2 text-center text-xs text-red-500">{googleError}</p>
-      )}
+      {googleError && <p className="mb-2 text-center text-xs text-red-500">{googleError}</p>}
       <div className="flex justify-center">
         <GoogleLogin
           onSuccess={async (response) => {
@@ -96,11 +92,11 @@ export default function InicioSesion() {
               navegar(ubicacion.state?.from?.pathname || rutaInicialPorRol(usuario.role), {
                 replace: true,
               });
-            } catch (e) {
-              setGoogleError(e.response?.data?.message || "Error al iniciar sesion con Google.");
+            } catch (excepcion) {
+              setGoogleError(excepcion.response?.data?.message || "Error al iniciar sesión con Google.");
             }
           }}
-          onError={() => setGoogleError("No se pudo iniciar sesion con Google.")}
+          onError={() => setGoogleError("No se pudo iniciar sesión con Google.")}
           size="large"
           text="signin_with"
           shape="rectangular"
@@ -109,7 +105,7 @@ export default function InicioSesion() {
 
       <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
         ¿No tienes cuenta?{" "}
-        <Link to="/registro" className="font-bold text-bosque-600 dark:text-teal-300">
+        <Link to="/registro" className="font-bold text-blue-600 dark:text-blue-300">
           Regístrate
         </Link>
       </p>
