@@ -1,0 +1,5 @@
+CREATE SCHEMA IF NOT EXISTS usuarios_schema;
+CREATE SCHEMA IF NOT EXISTS citas_schema;
+CREATE SCHEMA IF NOT EXISTS teleconsulta_schema;
+CREATE SCHEMA IF NOT EXISTS pagos_schema;
+

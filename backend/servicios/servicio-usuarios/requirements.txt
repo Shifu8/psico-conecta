@@ -1,0 +1,16 @@
+-r ../../requirements-comunes.txt
+Flask-Bcrypt==1.0.1
+Flask-JWT-Extended==4.7.1
+Flask-Migrate==4.1.0
+Flask-SQLAlchemy==3.1.1
+marshmallow==3.26.1
+email-validator==2.2.0
+python-dotenv==1.0.1
+psycopg[binary]==3.2.4
+boto3==1.36.8
+google-api-python-client==2.160.0
+google-auth==2.38.0
+pytest==8.3.4
+
+# Opcional: solo para ejecutar setup_google_credentials.py
+# google-auth-oauthlib==1.2.1

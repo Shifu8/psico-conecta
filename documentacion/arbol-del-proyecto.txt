@@ -1,0 +1,135 @@
+PsicoConecta-main/
+|-- .gitignore
+|-- LICENSE
+|-- README.md
+|-- docker-compose.yml
+|-- infraestructura/
+|   `-- postgres/
+|       `-- inicializar_esquemas.sql
+|-- documentacion/
+|   |-- arquitectura.md
+|   |-- arbol-del-proyecto.txt
+|   |-- decisiones-tecnicas.md
+|   |-- despliegue-aws.md
+|   |-- diseno-de-datos.md
+|   |-- requisitos-funcionales.md
+|   `-- requisitos-no-funcionales.md
+|-- frontend/
+|   |-- .env.example
+|   |-- index.html
+|   |-- package-lock.json
+|   |-- package.json
+|   |-- postcss.config.js
+|   |-- tailwind.config.js
+|   |-- vite.config.js
+|   `-- src/
+|       |-- Aplicacion.jsx
+|       |-- index.css
+|       |-- main.jsx
+|       |-- componentes/
+|       |   |-- BarraNavegacion.jsx
+|       |   |-- BotonTema.jsx
+|       |   |-- CampoFormulario.jsx
+|       |   |-- Logo.jsx
+|       |   |-- RutaPrivada.jsx
+|       |   |-- RutaRol.jsx
+|       |   `-- TarjetaCaracteristica.jsx
+|       |-- contexto/
+|       |   |-- ContextoAutenticacion.jsx
+|       |   `-- ContextoTema.jsx
+|       |-- paginas/
+|       |   |-- Inicio.jsx
+|       |   |-- Perfil.jsx
+|       |   |-- autenticacion/
+|       |   |   |-- InicioSesion.jsx
+|       |   |   |-- RecuperarContrasena.jsx
+|       |   |   |-- Registro.jsx
+|       |   |   `-- RestablecerContrasena.jsx
+|       |   `-- paneles/
+|       |       |-- EncabezadoPanel.jsx
+|       |       |-- PanelAdministrador.jsx
+|       |       |-- PanelPaciente.jsx
+|       |       `-- PanelPsicologo.jsx
+|       |-- plantillas/
+|       |   |-- PlantillaAutenticacion.jsx
+|       |   `-- PlantillaPanel.jsx
+|       |-- rutas/
+|       |   `-- RutasAplicacion.jsx
+|       `-- servicios/
+|           |-- api.js
+|           `-- servicioAutenticacion.js
+`-- backend/
+    |-- requirements-comunes.txt
+    |-- compartido/
+    |   |-- __init__.py
+    |   |-- configuracion.py
+    |   `-- servicio_s3.py
+    |-- puerta-enlace-api/
+    |   |-- .env.example
+    |   |-- aplicacion.py
+    |   `-- requirements.txt
+    `-- servicios/
+        |-- servicio-citas/
+        |   |-- .env.example
+        |   |-- aplicacion.py
+        |   `-- requirements.txt
+        |-- servicio-inteligencia-iot/
+        |   |-- .env.example
+        |   |-- aplicacion.py
+        |   |-- cliente_mqtt.py
+        |   `-- requirements.txt
+        |-- servicio-pagos/
+        |   |-- .env.example
+        |   |-- aplicacion.py
+        |   `-- requirements.txt
+        |-- servicio-teleconsulta/
+        |   |-- .env.example
+        |   |-- aplicacion.py
+        |   |-- requirements.txt
+        |   `-- servicio_zoom.py
+        `-- servicio-usuarios/
+            |-- .env.example
+            |-- datos_iniciales.py
+            |-- ejecutar.py
+            |-- requirements.txt
+            |-- aplicacion/
+            |   |-- __init__.py
+            |   |-- configuracion.py
+            |   |-- extensiones.py
+            |   |-- esquemas/
+            |   |   |-- __init__.py
+            |   |   |-- autenticacion.py
+            |   |   |-- rol.py
+            |   |   `-- usuario.py
+            |   |-- intermediarios/
+            |   |   |-- __init__.py
+            |   |   |-- autenticacion.py
+            |   |   `-- roles.py
+            |   |-- modelos/
+            |   |   |-- __init__.py
+            |   |   |-- permiso.py
+            |   |   |-- rol.py
+            |   |   |-- token_recuperacion.py
+            |   |   |-- tokens_revocados.py
+            |   |   `-- usuario.py
+            |   |-- rutas/
+            |   |   |-- __init__.py
+            |   |   |-- autenticacion.py
+            |   |   |-- paneles.py
+            |   |   |-- roles.py
+            |   |   `-- usuarios.py
+            |   |-- servicios/
+            |   |   |-- __init__.py
+            |   |   |-- servicio_autenticacion.py
+            |   |   |-- servicio_cognito.py
+            |   |   |-- servicio_gmail.py
+            |   |   `-- servicio_usuario.py
+            |   `-- utilidades/
+            |       |-- __init__.py
+            |       |-- jwt.py
+            |       |-- seguridad.py
+            |       `-- tiempo.py
+            `-- pruebas/
+                |-- conftest.py
+                |-- test_administracion.py
+                `-- test_autenticacion.py
