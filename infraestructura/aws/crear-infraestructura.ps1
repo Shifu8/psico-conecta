@@ -77,7 +77,18 @@ Write-Host "  - ALB security group: $SG_ID"
 Write-Host "  - VPC: $VPC_ID"
 Write-Host "  - Subnets: $SUBNETS"
 
-# --- Output ---
+# --- Secrets Manager ---
+Write-Host "`n7. Creando secrets en Secrets Manager..." -ForegroundColor Yellow
+$SECRETS = @(
+    @{name="psicoconecta/SECRET_KEY"; value="{\"SECRET_KEY\":\"change_this_secret_at_least_32_chars_$( -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 16 | % {[char]$_}))\"}"},
+    @{name="psicoconecta/JWT_SECRET_KEY"; value="{\"JWT_SECRET_KEY\":\"change_this_jwt_secret_at_least_32_chars_$( -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 16 | % {[char]$_}))\"}"}
+)
+foreach ($s in $SECRETS) {
+    aws secretsmanager create-secret --name $s.name --secret-string $s.value --region $REGION 2>$null
+    Write-Host "  - $($s.name) listo"
+}
+
+# --- ALB ---
 Write-Host "`n==========================================" -ForegroundColor Green
 Write-Host "INFRAESTRUCTURA CREADA" -ForegroundColor Green
 Write-Host "Account ID: $ACCOUNT_ID" -ForegroundColor Cyan
