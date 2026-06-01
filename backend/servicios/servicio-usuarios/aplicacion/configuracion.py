@@ -16,6 +16,10 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(
         seconds=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "3600"))
     )
+    LOGIN_MAX_ATTEMPTS = int(os.getenv("LOGIN_MAX_ATTEMPTS", "5"))
+    LOGIN_ATTEMPT_WINDOW_SECONDS = int(
+        os.getenv("LOGIN_ATTEMPT_WINDOW_SECONDS", "300")
+    )
     _database_url = os.getenv("DATABASE_URL", "")
     if _database_url.startswith("postgresql://") and "+psycopg" not in _database_url:
         _database_url = _database_url.replace("postgresql://", "postgresql+psycopg://", 1)
@@ -38,3 +42,8 @@ class Config:
     GOOGLE_REFRESH_TOKEN = os.getenv("GOOGLE_REFRESH_TOKEN", "")
     GOOGLE_SENDER_EMAIL = os.getenv("GOOGLE_SENDER_EMAIL", "")
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    CORS_ORIGINS = [
+        origin.strip()
+        for origin in os.getenv("CORS_ORIGINS", FRONTEND_URL).split(",")
+        if origin.strip()
+    ]

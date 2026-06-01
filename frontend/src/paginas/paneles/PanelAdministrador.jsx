@@ -19,14 +19,18 @@ export default function PanelAdministrador() {
   const [usuarios, setUsuarios] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [error, setError] = useState("");
+  const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState(null);
 
   const cargarUsuarios = async () => {
+    setCargando(true);
     try {
       const { data } = await api.get("/api/usuarios");
       setUsuarios(data.users || []);
     } catch (excepcion) {
       setError(excepcion.response?.data?.message || "No fue posible cargar los usuarios.");
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -38,7 +42,9 @@ export default function PanelAdministrador() {
     setProcesando(usuario.id);
     setError("");
     try {
-      await api.patch(`/api/usuarios/${usuario.id}/status`);
+      await api.patch(`/api/usuarios/${usuario.id}/status`, {
+        status: usuario.status === "active" ? "inactive" : "active",
+      });
       await cargarUsuarios();
     } catch (excepcion) {
       setError(excepcion.response?.data?.message || "No fue posible actualizar el estado.");
@@ -116,7 +122,14 @@ export default function PanelAdministrador() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {usuariosFiltrados.map((usuario) => (
+              {cargando && (
+                <tr>
+                  <td colSpan="4" className="px-6 py-10 text-center text-sm text-slate-400">
+                    Cargando usuarios...
+                  </td>
+                </tr>
+              )}
+              {!cargando && usuariosFiltrados.map((usuario) => (
                 <tr key={usuario.id} className="transition hover:bg-blue-50/50 dark:hover:bg-slate-800/45">
                   <td className="px-6 py-4">
                     <p className="font-bold text-slate-800 dark:text-slate-100">
@@ -148,7 +161,7 @@ export default function PanelAdministrador() {
                   </td>
                 </tr>
               ))}
-              {usuariosFiltrados.length === 0 && (
+              {!cargando && usuariosFiltrados.length === 0 && (
                 <tr>
                   <td colSpan="4" className="px-6 py-10 text-center text-sm text-slate-400">
                     No encontramos usuarios para esta búsqueda.

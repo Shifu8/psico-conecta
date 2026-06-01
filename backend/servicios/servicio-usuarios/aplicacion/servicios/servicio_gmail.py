@@ -35,7 +35,7 @@ def enviar_correo_recuperacion(destinatario, token):
     parametros = urlencode({"token": token})
     enlace = f"{current_app.config['FRONTEND_URL']}/restablecer-contrasena?{parametros}"
     if not configuracion_gmail_completa():
-        current_app.logger.info("Gmail API no configurada. Enlace local: %s", enlace)
+        current_app.logger.info("Gmail API no configurada. Se usará el modo local.")
         return {"enviado": False, "modo": "local", "enlace": enlace}
 
     mensaje = EmailMessage()

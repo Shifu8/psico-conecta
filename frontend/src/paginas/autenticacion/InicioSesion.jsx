@@ -5,10 +5,23 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import CampoFormulario from "../../componentes/CampoFormulario";
 import { usarAutenticacion } from "../../contexto/ContextoAutenticacion";
 import { rutaInicialPorRol } from "../../servicios/servicioAutenticacion";
+import {
+  normalizarCorreo,
+  obtenerMensajeApi,
+  validarCorreo,
+  validarPasswordRequerido,
+} from "../../utilidades/validacion";
+
+const validarFormulario = (formulario) => ({
+  email: validarCorreo(formulario.email),
+  password: validarPasswordRequerido(formulario.password),
+});
 
 export default function InicioSesion() {
+  const googleHabilitado = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim());
   const [formulario, setFormulario] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [tocados, setTocados] = useState({});
   const [procesando, setProcesando] = useState(false);
   const [googleError, setGoogleError] = useState("");
   const { entrar, googleLogin } = usarAutenticacion();
@@ -17,19 +30,34 @@ export default function InicioSesion() {
 
   const actualizar = ({ target }) => {
     setFormulario((actual) => ({ ...actual, [target.name]: target.value }));
+    setTocados((actual) => ({ ...actual, [target.name]: true }));
   };
+
+  const erroresFormulario = validarFormulario(formulario);
 
   const enviar = async (evento) => {
     evento.preventDefault();
+    if (procesando) return;
+    const credenciales = {
+      ...formulario,
+      email: normalizarCorreo(formulario.email),
+    };
+    const errores = validarFormulario(credenciales);
+    setFormulario(credenciales);
+    setTocados({ email: true, password: true });
     setError("");
+    if (Object.values(errores).some(Boolean)) {
+      setError("Revisa tus credenciales antes de continuar.");
+      return;
+    }
     setProcesando(true);
     try {
-      const usuario = await entrar(formulario);
+      const usuario = await entrar(credenciales);
       navegar(ubicacion.state?.from?.pathname || rutaInicialPorRol(usuario.role), {
         replace: true,
       });
     } catch (excepcion) {
-      setError(excepcion.response?.data?.message || "No fue posible iniciar sesión.");
+      setError(obtenerMensajeApi(excepcion, "No fue posible iniciar sesión."));
     } finally {
       setProcesando(false);
     }
@@ -45,14 +73,17 @@ export default function InicioSesion() {
         Accede a tu espacio personal de PsicoConecta.
       </p>
 
-      <form onSubmit={enviar} className="mt-7 space-y-4">
+      <form onSubmit={enviar} className="mt-7 space-y-4" noValidate>
         <CampoFormulario
           etiqueta="Correo electrónico"
           name="email"
           type="email"
           value={formulario.email}
           onChange={actualizar}
+          onBlur={() => setFormulario((actual) => ({ ...actual, email: normalizarCorreo(actual.email) }))}
+          error={tocados.email ? erroresFormulario.email : ""}
           autoComplete="email"
+          maxLength={255}
           required
         />
         <CampoFormulario
@@ -61,7 +92,9 @@ export default function InicioSesion() {
           type="password"
           value={formulario.password}
           onChange={actualizar}
+          error={tocados.password ? erroresFormulario.password : ""}
           autoComplete="current-password"
+          maxLength={128}
           required
         />
         {error && <p className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-200">{error}</p>}
@@ -83,25 +116,31 @@ export default function InicioSesion() {
       </div>
 
       {googleError && <p className="mb-2 text-center text-xs text-red-500">{googleError}</p>}
-      <div className="flex justify-center">
-        <GoogleLogin
-          onSuccess={async (response) => {
-            try {
-              setGoogleError("");
-              const usuario = await googleLogin(response.credential);
-              navegar(ubicacion.state?.from?.pathname || rutaInicialPorRol(usuario.role), {
-                replace: true,
-              });
-            } catch (excepcion) {
-              setGoogleError(excepcion.response?.data?.message || "Error al iniciar sesión con Google.");
-            }
-          }}
-          onError={() => setGoogleError("No se pudo iniciar sesión con Google.")}
-          size="large"
-          text="signin_with"
-          shape="rectangular"
-        />
-      </div>
+      {googleHabilitado ? (
+        <div className="flex justify-center">
+          <GoogleLogin
+            onSuccess={async (response) => {
+              try {
+                setGoogleError("");
+                const usuario = await googleLogin(response.credential);
+                navegar(ubicacion.state?.from?.pathname || rutaInicialPorRol(usuario.role), {
+                  replace: true,
+                });
+              } catch (excepcion) {
+                setGoogleError(excepcion.response?.data?.message || "Error al iniciar sesión con Google.");
+              }
+            }}
+            onError={() => setGoogleError("No se pudo iniciar sesión con Google.")}
+            size="large"
+            text="signin_with"
+            shape="rectangular"
+          />
+        </div>
+      ) : (
+        <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+          El inicio con Google no está configurado en este entorno.
+        </p>
+      )}
 
       <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
         ¿No tienes cuenta?{" "}

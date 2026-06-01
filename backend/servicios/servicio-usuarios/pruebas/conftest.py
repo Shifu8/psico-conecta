@@ -17,9 +17,17 @@ def app():
             "TESTING": True,
             "DEBUG": True,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+            "SQLALCHEMY_ENGINE_OPTIONS": {
+                "execution_options": {
+                    "schema_translate_map": {"usuarios_schema": None},
+                },
+            },
             "JWT_SECRET_KEY": "test-secret-with-at-least-thirty-two-bytes",
+            "LOGIN_MAX_ATTEMPTS": 5,
+            "LOGIN_ATTEMPT_WINDOW_SECONDS": 300,
             "MODO_DESARROLLO": True,
             "GOOGLE_CLIENT_ID": "",
+            "GOOGLE_LOGIN_CLIENT_ID": "",
             "GOOGLE_CLIENT_SECRET": "",
             "GOOGLE_REFRESH_TOKEN": "",
             "GOOGLE_SENDER_EMAIL": "",

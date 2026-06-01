@@ -40,7 +40,11 @@ def create_role():
 def update_role(role_id):
     role = db.get_or_404(Role, role_id, description="Rol no encontrado.")
     data = RoleSchema().load(request.get_json(silent=True) or {})
-    role.name = data["name"].strip().upper()
+    name = data["name"].strip().upper()
+    existing_role = Role.query.filter_by(name=name).first()
+    if existing_role and existing_role.id != role.id:
+        raise ValueError("El rol ya existe.")
+    role.name = name
     role.description = data["description"]
     _set_permissions(role, data["permissions"])
     db.session.commit()
@@ -56,5 +60,4 @@ def delete_role(role_id):
     db.session.delete(role)
     db.session.commit()
     return jsonify(message="Rol eliminado.")
-
 

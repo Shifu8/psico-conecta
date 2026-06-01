@@ -5,7 +5,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import Aplicacion from "./Aplicacion";
 import "./index.css";
 
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
 
 const temaGuardado = localStorage.getItem("psicoconecta_tema");
 const usarTemaOscuro = temaGuardado
@@ -18,9 +18,13 @@ document.documentElement.style.colorScheme = usarTemaOscuro ? "dark" : "light";
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
-      <GoogleOAuthProvider clientId={googleClientId}>
+      {googleClientId ? (
+        <GoogleOAuthProvider clientId={googleClientId}>
+          <Aplicacion />
+        </GoogleOAuthProvider>
+      ) : (
         <Aplicacion />
-      </GoogleOAuthProvider>
+      )}
     </BrowserRouter>
   </React.StrictMode>,
 );

@@ -6,11 +6,13 @@ from aplicacion.intermediarios.autenticacion import get_current_user
 from aplicacion.modelos import TokenBlocklist
 from aplicacion.esquemas.autenticacion import (
     ForgotPasswordSchema,
+    GoogleLoginSchema,
     LoginSchema,
     RegisterSchema,
     ResetPasswordSchema,
 )
 from aplicacion.servicios.servicio_autenticacion import (
+    InvalidCredentialsError,
     authenticate_user,
     create_password_reset,
     register_user,
@@ -19,6 +21,11 @@ from aplicacion.servicios.servicio_autenticacion import (
 from aplicacion.servicios.servicio_cognito import register_user_cognito
 from aplicacion.servicios.servicio_google_login import google_login as google_login_service
 from aplicacion.servicios.servicio_gmail import enviar_correo_recuperacion
+from aplicacion.utilidades.intentos_login import (
+    clear_login_attempts,
+    ensure_login_allowed,
+    register_failed_login,
+)
 
 auth_bp = Blueprint("autenticacion", __name__, url_prefix="/api/usuarios/autenticacion")
 
@@ -44,7 +51,14 @@ def register():
 @auth_bp.post("/inicio-sesion")
 def login():
     data = LoginSchema().load(request.get_json(silent=True) or {})
-    user, access_token = authenticate_user(data)
+    ip_address = request.remote_addr
+    ensure_login_allowed(ip_address, data["email"])
+    try:
+        user, access_token = authenticate_user(data)
+    except InvalidCredentialsError:
+        register_failed_login(ip_address, data["email"])
+        raise
+    clear_login_attempts(ip_address, data["email"])
     return jsonify(access_token=access_token, user=user.to_dict())
 
 
@@ -60,7 +74,7 @@ def logout():
 def forgot_password():
     data = ForgotPasswordSchema().load(request.get_json(silent=True) or {})
     token = create_password_reset(data["email"])
-    response = {"message": "Si el correo existe, recibiras instrucciones por correo."}
+    response = {"message": "Si el correo existe, recibirás instrucciones por correo."}
     if token:
         resultado = enviar_correo_recuperacion(data["email"], token)
         response["correo_enviado"] = resultado["enviado"]
@@ -73,7 +87,7 @@ def forgot_password():
 def reset_password_route():
     data = ResetPasswordSchema().load(request.get_json(silent=True) or {})
     reset_password(data["token"], data["password"])
-    return jsonify(message="Contrasena actualizada correctamente.")
+    return jsonify(message="Contraseña actualizada correctamente.")
 
 
 @auth_bp.get("/mi-perfil")
@@ -87,12 +101,12 @@ def me():
 
 @auth_bp.post("/google")
 def google_auth():
-    data = request.get_json(silent=True) or {}
-    credential = data.get("credential")
-    if not credential:
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict) or not payload.get("credential"):
         return jsonify(message="Token de Google requerido."), 400
+    data = GoogleLoginSchema().load(payload)
     try:
-        user, access_token = google_login_service(credential)
+        user, access_token = google_login_service(data["credential"])
         return jsonify(access_token=access_token, user=user.to_dict())
     except ValueError as e:
         return jsonify(message=str(e)), 400
@@ -100,9 +114,9 @@ def google_auth():
 
 @auth_bp.get("/google/configuracion")
 def google_login_configuration():
-    cid = current_app.config.get(
-        "GOOGLE_LOGIN_CLIENT_ID",
-        current_app.config.get("GOOGLE_CLIENT_ID", ""),
+    cid = (
+        current_app.config.get("GOOGLE_LOGIN_CLIENT_ID")
+        or current_app.config.get("GOOGLE_CLIENT_ID", "")
     )
     if cid:
         return jsonify({

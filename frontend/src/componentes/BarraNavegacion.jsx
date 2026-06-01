@@ -69,9 +69,14 @@ export default function BarraNavegacion() {
               </a>
             ))}
             {!usuario && (
-              <Link to="/registro" className="boton-primario mt-1 w-full sm:hidden">
-                Crear cuenta
-              </Link>
+              <div className="mt-1 flex flex-col gap-3 sm:hidden">
+                <Link to="/iniciar-sesion" className="boton-secundario w-full">
+                  Iniciar sesión
+                </Link>
+                <Link to="/registro" className="boton-primario w-full">
+                  Crear cuenta
+                </Link>
+              </div>
             )}
           </div>
         </div>
