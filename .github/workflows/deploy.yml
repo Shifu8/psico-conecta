@@ -78,7 +78,7 @@ jobs:
 
       - name: Invalidate CloudFront
         run: |
-          CF_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Origins.Items[?DomainName.contains(@, 'psicoconecta-frontend')]].Id" --output text)
+          CF_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Origins.Items[?DomainName.contains(@, 'psicoconecta-frontend')]].Id" --output text 2>/dev/null || true)
           if [ -n "$CF_ID" ]; then
-            aws cloudfront create-invalidation --distribution-id $CF_ID --paths "/*"
+            aws cloudfront create-invalidation --distribution-id $CF_ID --paths "/*" || true
           fi
