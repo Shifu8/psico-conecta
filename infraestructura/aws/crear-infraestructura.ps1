@@ -25,17 +25,24 @@ foreach ($t in $TABLAS) {
     Write-Host "  - $t lista"
 }
 
-# --- S3 Bucket ---
-Write-Host "`n3. Creando bucket S3 para archivos..." -ForegroundColor Yellow
-$BUCKET = "psicoconecta-archivos-$ACCOUNT_ID"
-aws s3 mb "s3://$BUCKET" --region $REGION 2>$null
-Write-Host "  - $BUCKET listo"
+# --- S3 Buckets ---
+Write-Host "`n3. Creando/verificando buckets S3..." -ForegroundColor Yellow
+$BUCKET_ARCHIVOS = "psicoconecta-archivos-$ACCOUNT_ID-us-east-2-an"
+aws s3 ls "s3://$BUCKET_ARCHIVOS" 2>$null
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "  - $BUCKET_ARCHIVOS ya existe"
+} else {
+    Write-Host "  - $BUCKET_ARCHIVOS no encontrado (lo creó otra cuenta?)"
+}
 
-# S3 Bucket for frontend
 $FRONTEND_BUCKET = "psicoconecta-frontend-$ACCOUNT_ID"
 aws s3 mb "s3://$FRONTEND_BUCKET" --region $REGION 2>$null
-aws s3 website "s3://$FRONTEND_BUCKET" --index-document index.html --error-document index.html
-Write-Host "  - $FRONTEND_BUCKET listo (static website)"
+if ($LASTEXITCODE -eq 0) {
+    aws s3 website "s3://$FRONTEND_BUCKET" --index-document index.html --error-document index.html
+    Write-Host "  - $FRONTEND_BUCKET creado"
+} else {
+    Write-Host "  - $FRONTEND_BUCKET ya existe"
+}
 
 # --- ECS Cluster ---
 Write-Host "`n4. Creando cluster ECS..." -ForegroundColor Yellow
@@ -95,7 +102,7 @@ Write-Host "Account ID: $ACCOUNT_ID" -ForegroundColor Cyan
 Write-Host "Region: $REGION" -ForegroundColor Cyan
 Write-Host "ECR: psicoconecta/{puerta-enlace,usuarios,citas,teleconsulta,pagos,iot}" -ForegroundColor Cyan
 Write-Host "DynamoDB: emociones, lecturas_iot, notificaciones, logs_iot" -ForegroundColor Cyan
-Write-Host "S3 Archivos: $BUCKET" -ForegroundColor Cyan
+Write-Host "S3 Archivos: $BUCKET_ARCHIVOS" -ForegroundColor Cyan
 Write-Host "S3 Frontend: $FRONTEND_BUCKET" -ForegroundColor Cyan
 Write-Host "Cluster ECS: $CLUSTER" -ForegroundColor Cyan
 Write-Host "VPC: $VPC_ID" -ForegroundColor Cyan
