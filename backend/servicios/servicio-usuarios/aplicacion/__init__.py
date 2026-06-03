@@ -32,9 +32,6 @@ def create_app(test_config=None):
     app.register_blueprint(roles_bp)
     app.register_blueprint(dashboard_bp)
 
-    with app.app_context():
-        db.create_all()
-
     @app.get("/health")
     def health():
         return jsonify(estado="ok", servicio="servicio-usuarios")
