@@ -150,7 +150,7 @@ export default function Inicio() {
               <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 dark:text-slate-300">
                 PsicoConecta facilita la gestión de citas, sesiones virtuales, pagos y
                 seguimiento emocional en una sola plataforma pensada para pacientes y
-                profesionales.
+                profesionales
               </p>
               <div className="mt-9 flex flex-wrap gap-4">
                 <Link to="/registro" className="boton-primario">
