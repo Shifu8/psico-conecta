@@ -13,6 +13,7 @@ export default function RecuperarContrasena() {
   const [email, setEmail] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
+  const [enlaceDemostracion, setEnlaceDemostracion] = useState("");
   const [procesando, setProcesando] = useState(false);
   const [tocado, setTocado] = useState(false);
   const errorEmail = validarCorreo(email);
@@ -25,11 +26,17 @@ export default function RecuperarContrasena() {
     setTocado(true);
     setError("");
     setMensaje("");
+    setEnlaceDemostracion("");
     if (validarCorreo(correo)) return;
     setProcesando(true);
     try {
       const { data } = await solicitarRecuperacion(correo);
       setMensaje(data.message || "Revisa tu correo para continuar.");
+      if (data.reset_token) {
+        setEnlaceDemostracion(
+          `/restablecer-contrasena?token=${encodeURIComponent(data.reset_token)}`,
+        );
+      }
     } catch (excepcion) {
       setError(obtenerMensajeApi(excepcion, "No fue posible solicitar la recuperación."));
     } finally {
@@ -47,6 +54,11 @@ export default function RecuperarContrasena() {
       <form onSubmit={enviar} className="mt-7 space-y-4" noValidate>
         <CampoFormulario etiqueta="Correo electrónico" type="email" value={email} onChange={(evento) => { setEmail(evento.target.value); setTocado(true); }} onBlur={() => setEmail(normalizarCorreo(email))} error={tocado ? errorEmail : ""} autoComplete="email" maxLength={255} required />
         {mensaje && <p className="rounded-xl bg-cyan-50 p-3 text-sm font-semibold text-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-200">{mensaje}</p>}
+        {enlaceDemostracion && (
+          <Link to={enlaceDemostracion} className="boton-secundario w-full text-center">
+            Continuar al restablecimiento
+          </Link>
+        )}
         {error && <p className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-200">{error}</p>}
         <button type="submit" className="boton-primario w-full" disabled={procesando}>
           <Mail size={18} />

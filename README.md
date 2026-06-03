@@ -86,7 +86,30 @@ PsicoConecta-main/
 
 ## Inicio rápido local
 
-### 1. Servicio de usuarios
+### Opción recomendada: Docker + Vite
+
+Levanta PostgreSQL y el servicio de usuarios. Docker ejecuta el seed antes de
+iniciar Flask, por lo que las credenciales demo quedan listas.
+
+```powershell
+docker compose up servicio-usuarios
+```
+
+En otra terminal:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Abrir `http://localhost:5173`.
+
+El frontend local usa `frontend/.env.development`, que apunta a
+`http://127.0.0.1:5001`. La build de producción en GitHub obtiene el DNS del
+ALB `psicoconecta-alb` y usa ese valor como `VITE_API_URL`.
+
+### Opción manual: PostgreSQL + Flask
 
 La demostración local requiere PostgreSQL. Copia `backend/servicios/servicio-usuarios/.env.example` a `.env` antes de iniciar el servicio.
 
@@ -232,3 +255,22 @@ Antes de publicar se deben configurar secretos fuera del repositorio, HTTPS,
 infraestructura como código, CI/CD, monitoreo, backups, políticas IAM de mínimo
 privilegio y pruebas de carga. No subir `.env`, archivos OAuth, certificados ni
 credenciales reales.
+
+## Despliegue desde GitHub
+
+El workflow `.github/workflows/deploy.yml` se ejecuta al hacer push a `main`.
+Construye y sube imágenes Docker a ECR, registra las task definitions que
+existen en `infraestructura/aws/task-definition-*.json`, actualiza los servicios
+ECS activos y publica `frontend/dist` en el bucket S3.
+
+Para que funcione necesita estos secrets en GitHub:
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_ACCOUNT_ID`
+- `AWS_REGION` opcional, por defecto `us-east-2`
+- `VITE_GOOGLE_CLIENT_ID` opcional
+
+Si cambias solo el frontend y haces push a `main`, GitHub reconstruye y sube el
+sitio a S3. Si cambias backend o task definitions, también actualiza ECS para
+los servicios que ya existen.

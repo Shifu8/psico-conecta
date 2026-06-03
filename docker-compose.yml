@@ -39,7 +39,11 @@ services:
     env_file:
       - ./backend/servicios/servicio-usuarios/.env.example
       - ./.env.example
-    command: sh -c "pip install --no-cache-dir -r requirements.txt && python ejecutar.py"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/psicoconecta
+      FRONTEND_URL: http://localhost:5173
+      CORS_ORIGINS: http://localhost:5173
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python datos_iniciales.py && python ejecutar.py"
     ports:
       - "5001:5001"
     depends_on:
@@ -54,6 +58,8 @@ services:
       - ./backend/servicios/servicio-citas:/app:ro
     env_file:
       - ./.env.example
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/psicoconecta
     command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
     ports:
       - "5002:5002"
@@ -69,6 +75,8 @@ services:
       - ./backend/servicios/servicio-teleconsulta:/app:ro
     env_file:
       - ./.env.example
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/psicoconecta
     command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
     ports:
       - "5003:5003"
@@ -84,6 +92,8 @@ services:
       - ./backend/servicios/servicio-pagos:/app:ro
     env_file:
       - ./.env.example
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/psicoconecta
     command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
     ports:
       - "5004:5004"
