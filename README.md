@@ -86,6 +86,22 @@ PsicoConecta-main/
 
 ## Inicio rápido local
 
+### Sin Docker
+
+En una terminal:
+
+```powershell
+.\scripts\local-backend.ps1
+```
+
+En otra terminal:
+
+```powershell
+.\scripts\local-frontend.ps1
+```
+
+Abrir `http://localhost:5173`.
+
 ### Opción recomendada: Docker + Vite
 
 Levanta PostgreSQL y el servicio de usuarios. Docker ejecuta el seed antes de
