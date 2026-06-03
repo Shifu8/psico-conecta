@@ -1,21 +1,21 @@
-﻿import os
-
 from aplicacion.extensiones import db
+from aplicacion.modelos.schema import obtener_schema, prefijo_schema
 
-_SCHEMA = os.environ.get("DATABASE_SCHEMA", "usuarios_schema") or None
+_SCHEMA = obtener_schema()
+_SCHEMA_PREFIX = prefijo_schema(_SCHEMA)
 
 role_permissions = db.Table(
     "roles_permisos",
     db.Column(
         "rol_id",
         db.Integer,
-        db.ForeignKey(f"{_SCHEMA + '.' if _SCHEMA else ''}roles.id"),
+        db.ForeignKey(f"{_SCHEMA_PREFIX}roles.id"),
         primary_key=True,
     ),
     db.Column(
         "permiso_id",
         db.Integer,
-        db.ForeignKey(f"{_SCHEMA + '.' if _SCHEMA else ''}permisos.id"),
+        db.ForeignKey(f"{_SCHEMA_PREFIX}permisos.id"),
         primary_key=True,
     ),
     schema=_SCHEMA if _SCHEMA else None,
@@ -32,5 +32,3 @@ class Permission(db.Model):
 
     def to_dict(self):
         return {"id": self.id, "name": self.name, "description": self.description}
-
-

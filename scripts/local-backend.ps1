@@ -1,8 +1,11 @@
+param([switch]$Reset)
+
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $serviceDir = Join-Path $repoRoot "backend\servicios\servicio-usuarios"
 $venvPython = Join-Path $serviceDir "venv\Scripts\python.exe"
+$localDb = Join-Path $serviceDir "datos_local.db"
 
 Set-Location $serviceDir
 
@@ -20,6 +23,10 @@ $env:JWT_SECRET_KEY = "change_this_jwt_secret_at_least_32_chars"
 $env:MODO_DESARROLLO = "true"
 $env:FRONTEND_URL = "http://localhost:5173"
 $env:CORS_ORIGINS = "http://localhost:5173"
+
+if ($Reset -and (Test-Path $localDb)) {
+    Remove-Item $localDb -Force
+}
 
 & $venvPython datos_iniciales.py
 & $venvPython ejecutar.py

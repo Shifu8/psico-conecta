@@ -1,9 +1,9 @@
-﻿import os
-
 from aplicacion.extensiones import db
+from aplicacion.modelos.schema import obtener_schema, prefijo_schema
 from aplicacion.utilidades.tiempo import utc_now
 
-_SCHEMA = os.environ.get("DATABASE_SCHEMA", "usuarios_schema") or None
+_SCHEMA = obtener_schema()
+_SCHEMA_PREFIX = prefijo_schema(_SCHEMA)
 
 
 class User(db.Model):
@@ -20,7 +20,7 @@ class User(db.Model):
     phone = db.Column(db.String(30), nullable=True)
     role_id = db.Column(
         db.Integer,
-        db.ForeignKey(f"{_SCHEMA + '.' if _SCHEMA else ''}roles.id"),
+        db.ForeignKey(f"{_SCHEMA_PREFIX}roles.id"),
         nullable=False,
     )
     status = db.Column(db.String(20), nullable=False, default="active")

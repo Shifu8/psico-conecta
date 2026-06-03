@@ -1,9 +1,8 @@
-﻿import os
-
 from aplicacion.extensiones import db
 from aplicacion.modelos.permiso import role_permissions
+from aplicacion.modelos.schema import obtener_schema
 
-_SCHEMA = os.environ.get("DATABASE_SCHEMA", "usuarios_schema") or None
+_SCHEMA = obtener_schema()
 
 
 class Role(db.Model):
@@ -24,5 +23,3 @@ class Role(db.Model):
             "description": self.description,
             "permissions": [permission.name for permission in self.permissions],
         }
-
-

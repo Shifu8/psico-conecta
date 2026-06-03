@@ -1,9 +1,8 @@
-﻿import os
-
 from aplicacion.extensiones import db
+from aplicacion.modelos.schema import obtener_schema
 from aplicacion.utilidades.tiempo import utc_now
 
-_SCHEMA = os.environ.get("DATABASE_SCHEMA", "usuarios_schema") or None
+_SCHEMA = obtener_schema()
 
 
 class TokenBlocklist(db.Model):
@@ -13,4 +12,3 @@ class TokenBlocklist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     jti = db.Column(db.String(64), unique=True, nullable=False, index=True)
     revoked_at = db.Column(db.DateTime, nullable=False, default=utc_now)
-

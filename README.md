@@ -94,6 +94,12 @@ En una terminal:
 .\scripts\local-backend.ps1
 ```
 
+Si SQLite local quedó a medias por un error anterior, reinícialo con:
+
+```powershell
+.\scripts\local-backend.ps1 -Reset
+```
+
 En otra terminal:
 
 ```powershell
