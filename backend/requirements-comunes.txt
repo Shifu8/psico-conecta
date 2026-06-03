@@ -1,0 +1,5 @@
+## Este archivo es histórico y no debe usarse para nuevas instalaciones.
+## Usa `backend/requirements/base.txt` y los archivos específicos de cada microservicio.
+## Ejemplo:
+##   pip install -r backend/requirements/usuarios.txt
+

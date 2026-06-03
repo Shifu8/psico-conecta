@@ -1,0 +1,4 @@
+-r ../../requirements/usuarios.txt
+
+# Opcional: solo para ejecutar setup_google_credentials.py
+# google-auth-oauthlib==1.2.1

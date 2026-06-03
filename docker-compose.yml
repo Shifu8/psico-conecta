@@ -1,0 +1,120 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: psicoconecta-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: psicoconecta
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infraestructura/postgres/inicializar_esquemas.sql:/docker-entrypoint-initdb.d/01-inicializar-esquemas.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d psicoconecta"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: psicoconecta-pgadmin
+    profiles: ["tools"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@psicoconecta.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  servicio-usuarios:
+    image: python:3.11-slim
+    container_name: psicoconecta-usuarios
+    working_dir: /app
+    volumes:
+      - ./backend/servicios/servicio-usuarios:/app:ro
+    env_file:
+      - ./backend/servicios/servicio-usuarios/.env.example
+      - ./.env.example
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/psicoconecta
+      FRONTEND_URL: http://localhost:5173
+      CORS_ORIGINS: http://localhost:5173
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python datos_iniciales.py && python ejecutar.py"
+    ports:
+      - "5001:5001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  servicio-citas:
+    image: python:3.11-slim
+    container_name: psicoconecta-citas
+    working_dir: /app
+    volumes:
+      - ./backend/servicios/servicio-citas:/app:ro
+    env_file:
+      - ./.env.example
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/psicoconecta
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
+    ports:
+      - "5002:5002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  servicio-teleconsulta:
+    image: python:3.11-slim
+    container_name: psicoconecta-teleconsulta
+    working_dir: /app
+    volumes:
+      - ./backend/servicios/servicio-teleconsulta:/app:ro
+    env_file:
+      - ./.env.example
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/psicoconecta
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
+    ports:
+      - "5003:5003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  servicio-pagos:
+    image: python:3.11-slim
+    container_name: psicoconecta-pagos
+    working_dir: /app
+    volumes:
+      - ./backend/servicios/servicio-pagos:/app:ro
+    env_file:
+      - ./.env.example
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/psicoconecta
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
+    ports:
+      - "5004:5004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  servicio-inteligencia-iot:
+    image: python:3.11-slim
+    container_name: psicoconecta-iot
+    working_dir: /app
+    volumes:
+      - ./backend/servicios/servicio-inteligencia-iot:/app:ro
+    env_file:
+      - ./.env.example
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
+    ports:
+      - "5005:5005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

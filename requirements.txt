@@ -1,0 +1,5 @@
+-r backend/requirements/base.txt
+
+# Use backend/requirements/*.txt for service-specific dependencies.
+# Example:
+#   pip install -r backend/requirements/usuarios.txt
