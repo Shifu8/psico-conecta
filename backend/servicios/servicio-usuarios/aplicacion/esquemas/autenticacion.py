@@ -39,6 +39,11 @@ class RegisterSchema(AuthenticationSchema):
     email = fields.Email(required=True, validate=validate.Length(max=255))
     password = fields.String(required=True, load_only=True, validate=validate_password)
     phone = fields.String(load_default=None, allow_none=True, validate=validate_phone)
+    captcha_token = fields.String(
+        load_default=None,
+        allow_none=True,
+        validate=validate.Length(max=5000),
+    )
 
 
 class LoginSchema(AuthenticationSchema):
@@ -46,10 +51,20 @@ class LoginSchema(AuthenticationSchema):
     password = fields.String(
         required=True, load_only=True, validate=validate.Length(min=1, max=128)
     )
+    captcha_token = fields.String(
+        load_default=None,
+        allow_none=True,
+        validate=validate.Length(max=5000),
+    )
 
 
 class ForgotPasswordSchema(AuthenticationSchema):
     email = fields.Email(required=True, validate=validate.Length(max=255))
+    captcha_token = fields.String(
+        load_default=None,
+        allow_none=True,
+        validate=validate.Length(max=5000),
+    )
 
 
 class ResetPasswordSchema(AuthenticationSchema):

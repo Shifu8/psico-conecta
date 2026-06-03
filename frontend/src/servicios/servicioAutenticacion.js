@@ -9,8 +9,11 @@ export const registrarUsuario = (datos) => api.post(`${BASE}/registro`, datos);
 
 export const cerrarSesion = () => api.post(`${BASE}/cierre-sesion`);
 
-export const solicitarRecuperacion = (email) =>
-  api.post(`${BASE}/recuperar-contrasena`, { email });
+export const solicitarRecuperacion = (email, captcha_token) =>
+  api.post(`${BASE}/recuperar-contrasena`, {
+    email,
+    ...(captcha_token ? { captcha_token } : {}),
+  });
 
 export const restablecerContrasena = (datos) =>
   api.post(`${BASE}/restablecer-contrasena`, datos);

@@ -184,4 +184,5 @@ ALB_DNS="$(aws elbv2 describe-load-balancers \
 echo
 echo "ALB listo: http://$ALB_DNS"
 echo "Health check: http://$ALB_DNS/health"
-echo "Configura el frontend con: VITE_API_URL=http://$ALB_DNS"
+echo "Para produccion, configura CloudFront con un behavior /api/* hacia este ALB."
+echo "Luego compila el frontend con: VITE_API_URL=https://d1wkhs3cq8vcom.cloudfront.net"

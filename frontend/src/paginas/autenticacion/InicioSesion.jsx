@@ -2,6 +2,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { LogIn } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import CaptchaTurnstile from "../../componentes/CaptchaTurnstile";
 import CampoFormulario from "../../componentes/CampoFormulario";
 import { usarAutenticacion } from "../../contexto/ContextoAutenticacion";
 import { rutaInicialPorRol } from "../../servicios/servicioAutenticacion";
@@ -19,10 +20,13 @@ const validarFormulario = (formulario) => ({
 
 export default function InicioSesion() {
   const googleHabilitado = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim());
+  const captchaHabilitado = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim());
   const [formulario, setFormulario] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [tocados, setTocados] = useState({});
   const [procesando, setProcesando] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [googleError, setGoogleError] = useState("");
   const { entrar, googleLogin } = usarAutenticacion();
   const navegar = useNavigate();
@@ -33,6 +37,18 @@ export default function InicioSesion() {
     setTocados((actual) => ({ ...actual, [target.name]: true }));
   };
 
+  const reiniciarCaptcha = () => {
+    if (!captchaHabilitado) return;
+    setCaptchaToken("");
+    setCaptchaResetKey((actual) => actual + 1);
+  };
+
+  const navegarDespuesDeEntrar = (usuario) => {
+    navegar(ubicacion.state?.from?.pathname || rutaInicialPorRol(usuario.role), {
+      replace: true,
+    });
+  };
+
   const erroresFormulario = validarFormulario(formulario);
 
   const enviar = async (evento) => {
@@ -41,25 +57,44 @@ export default function InicioSesion() {
     const credenciales = {
       ...formulario,
       email: normalizarCorreo(formulario.email),
+      ...(captchaHabilitado ? { captcha_token: captchaToken } : {}),
     };
     const errores = validarFormulario(credenciales);
-    setFormulario(credenciales);
+    setFormulario((actual) => ({
+      ...actual,
+      email: credenciales.email,
+    }));
     setTocados({ email: true, password: true });
     setError("");
     if (Object.values(errores).some(Boolean)) {
       setError("Revisa tus credenciales antes de continuar.");
       return;
     }
+    if (captchaHabilitado && !captchaToken) {
+      setError("Completa la verificación de seguridad antes de continuar.");
+      return;
+    }
     setProcesando(true);
     try {
       const usuario = await entrar(credenciales);
-      navegar(ubicacion.state?.from?.pathname || rutaInicialPorRol(usuario.role), {
-        replace: true,
-      });
+      navegarDespuesDeEntrar(usuario);
     } catch (excepcion) {
       setError(obtenerMensajeApi(excepcion, "No fue posible iniciar sesión."));
+      reiniciarCaptcha();
     } finally {
       setProcesando(false);
+    }
+  };
+
+  const iniciarConGoogle = async (response) => {
+    try {
+      setGoogleError("");
+      const usuario = await googleLogin(response.credential);
+      navegarDespuesDeEntrar(usuario);
+    } catch (excepcion) {
+      setGoogleError(
+        excepcion.response?.data?.message || "Error al iniciar sesión con Google.",
+      );
     }
   };
 
@@ -70,7 +105,7 @@ export default function InicioSesion() {
         Inicia sesión
       </h1>
       <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-        Accede a tu espacio personal de PsicoConecta.
+        Accede con tus credenciales o continúa con Google.
       </p>
 
       <form onSubmit={enviar} className="mt-7 space-y-4" noValidate>
@@ -80,7 +115,12 @@ export default function InicioSesion() {
           type="email"
           value={formulario.email}
           onChange={actualizar}
-          onBlur={() => setFormulario((actual) => ({ ...actual, email: normalizarCorreo(actual.email) }))}
+          onBlur={() =>
+            setFormulario((actual) => ({
+              ...actual,
+              email: normalizarCorreo(actual.email),
+            }))
+          }
           error={tocados.email ? erroresFormulario.email : ""}
           autoComplete="email"
           maxLength={255}
@@ -97,9 +137,22 @@ export default function InicioSesion() {
           maxLength={128}
           required
         />
-        {error && <p className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-200">{error}</p>}
+        {captchaHabilitado && (
+          <CaptchaTurnstile
+            onVerify={setCaptchaToken}
+            resetKey={captchaResetKey}
+          />
+        )}
+        {error && (
+          <p className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-200">
+            {error}
+          </p>
+        )}
         <div className="flex justify-end">
-          <Link to="/recuperar-contrasena" className="text-sm font-bold text-blue-600 transition hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200">
+          <Link
+            to="/recuperar-contrasena"
+            className="text-sm font-bold text-blue-600 transition hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200"
+          >
             Olvidé mi contraseña
           </Link>
         </div>
@@ -119,17 +172,7 @@ export default function InicioSesion() {
       {googleHabilitado ? (
         <div className="flex justify-center">
           <GoogleLogin
-            onSuccess={async (response) => {
-              try {
-                setGoogleError("");
-                const usuario = await googleLogin(response.credential);
-                navegar(ubicacion.state?.from?.pathname || rutaInicialPorRol(usuario.role), {
-                  replace: true,
-                });
-              } catch (excepcion) {
-                setGoogleError(excepcion.response?.data?.message || "Error al iniciar sesión con Google.");
-              }
-            }}
+            onSuccess={iniciarConGoogle}
             onError={() => setGoogleError("No se pudo iniciar sesión con Google.")}
             size="large"
             text="signin_with"

@@ -228,6 +228,26 @@ GOOGLE_LOGIN_CLIENT_ID=<web-client-id>
 VITE_GOOGLE_CLIENT_ID=<mismo-client-id>
 ```
 
+## Producción HTTPS, Gmail y CAPTCHA
+
+Para producción, el frontend debe usar CloudFront como origen seguro:
+
+```env
+VITE_API_URL=https://d1wkhs3cq8vcom.cloudfront.net
+FRONTEND_URL=https://d1wkhs3cq8vcom.cloudfront.net
+CORS_ORIGINS=https://d1wkhs3cq8vcom.cloudfront.net,http://psicoconecta-frontend-060899556466.s3-website.us-east-2.amazonaws.com
+```
+
+La recuperación de contraseña necesita que ECS reciba `GOOGLE_CLIENT_ID`,
+`GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN` y `GOOGLE_SENDER_EMAIL` desde
+Secrets Manager. El script `infraestructura/aws/actualizar-secretos-usuarios.ps1`
+lee esos valores desde `backend/servicios/servicio-usuarios/.env` y los actualiza
+en AWS.
+
+CAPTCHA usa Cloudflare Turnstile de forma opcional. Si configuras
+`VITE_TURNSTILE_SITE_KEY` en el frontend y `TURNSTILE_SECRET_KEY` en el backend,
+los formularios de registro, inicio de sesión y recuperación validan el desafío.
+
 ## Endpoints principales
 
 Autenticación:

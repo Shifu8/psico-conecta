@@ -18,6 +18,7 @@ from aplicacion.servicios.servicio_autenticacion import (
     register_user,
     reset_password,
 )
+from aplicacion.servicios.servicio_captcha import verificar_captcha
 from aplicacion.servicios.servicio_cognito import register_user_cognito
 from aplicacion.servicios.servicio_google_login import google_login as google_login_service
 from aplicacion.servicios.servicio_gmail import enviar_correo_recuperacion
@@ -33,6 +34,7 @@ auth_bp = Blueprint("autenticacion", __name__, url_prefix="/api/usuarios/autenti
 @auth_bp.post("/registro")
 def register():
     data = RegisterSchema().load(request.get_json(silent=True) or {})
+    verificar_captcha(data.get("captcha_token"), request.remote_addr)
     cognito_response = None
     if current_app.config["COGNITO_ENABLED"]:
         cognito_response = register_user_cognito(
@@ -51,6 +53,7 @@ def register():
 @auth_bp.post("/inicio-sesion")
 def login():
     data = LoginSchema().load(request.get_json(silent=True) or {})
+    verificar_captcha(data.get("captcha_token"), request.remote_addr)
     ip_address = request.remote_addr
     ensure_login_allowed(ip_address, data["email"])
     try:
@@ -73,6 +76,7 @@ def logout():
 @auth_bp.post("/recuperar-contrasena")
 def forgot_password():
     data = ForgotPasswordSchema().load(request.get_json(silent=True) or {})
+    verificar_captcha(data.get("captcha_token"), request.remote_addr)
     token = create_password_reset(data["email"])
     response = {"message": "Si el correo existe, recibirás instrucciones por correo."}
     if token:

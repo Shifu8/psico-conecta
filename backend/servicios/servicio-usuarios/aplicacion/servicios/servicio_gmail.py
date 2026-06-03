@@ -48,11 +48,18 @@ def enviar_correo_recuperacion(destinatario, token):
         "El enlace expira en 30 minutos. Si no solicitaste el cambio, ignoralo."
     )
     contenido = base64.urlsafe_b64encode(mensaje.as_bytes()).decode("utf-8")
-    respuesta = (
-        _crear_cliente_gmail()
-        .users()
-        .messages()
-        .send(userId="me", body={"raw": contenido})
-        .execute()
-    )
+    try:
+        respuesta = (
+            _crear_cliente_gmail()
+            .users()
+            .messages()
+            .send(userId="me", body={"raw": contenido})
+            .execute()
+        )
+    except Exception as error:
+        current_app.logger.warning(
+            "No se pudo enviar correo de recuperacion con Gmail API: %s",
+            type(error).__name__,
+        )
+        return {"enviado": False, "modo": "gmail_api", "error": type(error).__name__}
     return {"enviado": True, "modo": "gmail_api", "id_mensaje": respuesta.get("id")}

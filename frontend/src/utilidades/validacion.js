@@ -14,6 +14,47 @@ const CONTRASENAS_DEBILES = new Set([
 export const AYUDA_CONTRASENA =
   "Usa de 8 a 128 caracteres con mayúscula, minúscula, número y carácter especial.";
 
+export const obtenerRequisitosContrasena = (valor = "") => [
+  {
+    id: "longitud",
+    texto: "Entre 8 y 128 caracteres",
+    cumplido: valor.length >= 8 && valor.length <= 128,
+  },
+  {
+    id: "mayuscula",
+    texto: "Al menos una mayúscula",
+    cumplido: /[A-ZÁÉÍÓÚÜÑ]/.test(valor),
+  },
+  {
+    id: "minuscula",
+    texto: "Al menos una minúscula",
+    cumplido: /[a-záéíóúüñ]/.test(valor),
+  },
+  {
+    id: "numero",
+    texto: "Al menos un número",
+    cumplido: /\d/.test(valor),
+  },
+  {
+    id: "especial",
+    texto: "Al menos un carácter especial",
+    cumplido: CARACTER_ESPECIAL.test(valor),
+  },
+  {
+    id: "sin-espacios",
+    texto: "Sin espacios",
+    cumplido: valor.length > 0 && !/\s/.test(valor),
+  },
+  {
+    id: "no-comun",
+    texto: "No debe ser una contraseña común",
+    cumplido:
+      valor.length > 0 &&
+      !CONTRASENAS_DEBILES.has(valor.toLowerCase()) &&
+      new Set(valor.toLowerCase()).size >= 5,
+  },
+];
+
 export const normalizarEspacios = (valor = "") =>
   valor.trim().replace(/\s+/g, " ");
 

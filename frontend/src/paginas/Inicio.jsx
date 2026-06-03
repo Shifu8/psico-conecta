@@ -23,6 +23,7 @@ import { Link } from "react-router-dom";
 import BarraNavegacion from "../componentes/BarraNavegacion";
 import Logo from "../componentes/Logo";
 import TarjetaCaracteristica from "../componentes/TarjetaCaracteristica";
+import ilustracionBienestar from "../assets/ilustracion-bienestar.svg";
 
 const beneficiosPacientes = [
   {
@@ -178,40 +179,36 @@ export default function Inicio() {
             >
               <div className="absolute -inset-5 -z-10 rounded-[2.5rem] bg-gradient-to-br from-blue-300/35 via-indigo-300/25 to-cyan-200/35 blur-2xl dark:from-blue-900/30 dark:via-indigo-900/20 dark:to-cyan-900/20" />
               <div className="overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 p-5 shadow-2xl backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/85 sm:p-7">
-                <div className="flex items-center justify-between">
+                <div className="rounded-[1.6rem] bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50 p-4 dark:from-slate-800 dark:via-blue-950/40 dark:to-slate-800">
+                  <img
+                    src={ilustracionBienestar}
+                    alt="Personas conversando en un espacio de apoyo psicológico"
+                    className="mx-auto w-full max-w-md drop-shadow-xl"
+                  />
+                </div>
+                <div className="mt-5 flex items-center justify-between gap-4">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300">
-                      Tu próxima cita
+                      Cuidado digital
                     </p>
                     <h2 className="mt-2 text-xl font-black text-slate-900 dark:text-white">
-                      Un espacio para ti
+                      Apoyo psicológico más claro y cercano
                     </h2>
                   </div>
                   <span className="icono-panel">
                     <HeartHandshake size={22} />
                   </span>
                 </div>
-                <div className="mt-6 rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-600 p-5 text-white">
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold">Confirmada</span>
-                    <CalendarHeart size={21} />
-                  </div>
-                  <p className="mt-8 text-sm text-blue-100">Sesión virtual</p>
-                  <p className="mt-1 text-xl font-black">Jueves, 10:30 a. m.</p>
-                  <button type="button" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-xs font-black text-blue-700 shadow-sm">
-                    Ver detalles <ArrowRight size={15} />
-                  </button>
-                </div>
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/70">
                     <Activity size={19} className="text-cyan-600 dark:text-cyan-300" />
-                    <p className="mt-3 text-sm font-black text-slate-800 dark:text-white">Seguimiento cercano</p>
-                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">Tu proceso en un solo lugar</p>
+                    <p className="mt-3 text-sm font-black text-slate-800 dark:text-white">Seguimiento emocional</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">Herramientas para acompañar cada proceso.</p>
                   </div>
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/70">
                     <ShieldCheck size={19} className="text-indigo-600 dark:text-indigo-300" />
-                    <p className="mt-3 text-sm font-black text-slate-800 dark:text-white">Acceso protegido</p>
-                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">Tu información es privada</p>
+                    <p className="mt-3 text-sm font-black text-slate-800 dark:text-white">Privacidad primero</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">Acceso protegido para pacientes y profesionales.</p>
                   </div>
                 </div>
               </div>

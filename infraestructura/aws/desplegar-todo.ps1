@@ -3,6 +3,7 @@ param(
     [string]$Cluster = "psicoconecta",
     [string]$CuentaAWS = "",
     [string]$FrontendBucket = "psicoconecta-frontend-060899556466",
+    [string]$FrontendApiUrl = "https://d1wkhs3cq8vcom.cloudfront.net",
     [string]$GoogleClientId = ""
 )
 
@@ -49,23 +50,8 @@ Write-Host ""
 # ============================================================
 Write-Host "=== 1. CREANDO SECRETS ===" -ForegroundColor Yellow
 
-# GOOGLE_CLIENT_SECRET
-$secretExists = aws secretsmanager list-secrets --region $Region --query "SecretList[?Name=='psicoconecta/GOOGLE_CLIENT_SECRET'].Name" --output text
-if (-not $secretExists) {
-    Write-Host "  [!] GOOGLE_CLIENT_SECRET no existe. Crearlo manualmente:" -ForegroundColor Yellow
-    Write-Host "  aws secretsmanager create-secret --name psicoconecta/GOOGLE_CLIENT_SECRET --secret-string '{\"GOOGLE_CLIENT_SECRET\":\"<tu-client-secret>\"}' --region $Region" -ForegroundColor Yellow
-} else {
-    Write-Host "  psicoconecta/GOOGLE_CLIENT_SECRET ya existe" -ForegroundColor Gray
-}
-
-# GOOGLE_REFRESH_TOKEN
-$secretExists2 = aws secretsmanager list-secrets --region $Region --query "SecretList[?Name=='psicoconecta/GOOGLE_REFRESH_TOKEN'].Name" --output text
-if (-not $secretExists2) {
-    Write-Host "  [!] GOOGLE_REFRESH_TOKEN no existe. Crealo manualmente:" -ForegroundColor Yellow
-    Write-Host "  aws secretsmanager create-secret --name psicoconecta/GOOGLE_REFRESH_TOKEN --secret-string '{\"GOOGLE_REFRESH_TOKEN\":\"<tu-refresh-token>\"}' --region $Region" -ForegroundColor Yellow
-} else {
-    Write-Host "  psicoconecta/GOOGLE_REFRESH_TOKEN ya existe" -ForegroundColor Gray
-}
+Write-Host "  Gmail se configura con infraestructura/aws/actualizar-secretos-usuarios.ps1" -ForegroundColor Cyan
+Write-Host "  Ese script guarda GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN y GOOGLE_SENDER_EMAIL como cadenas simples." -ForegroundColor Cyan
 
 # Actualizar SECRET_KEY si tiene valor por defecto
 $secVal = aws secretsmanager get-secret-value --secret-id psicoconecta/SECRET_KEY --region $Region --query SecretString --output text 2>$null
@@ -253,18 +239,7 @@ if ($LASTEXITCODE -eq 0) {
 # ============================================================
 Write-Host "`n=== 8. RECONSTRUIR FRONTEND CON URL PRODUCCION ===" -ForegroundColor Yellow
 
-# Obtener IP del servicio usuarios
-$taskArn = aws ecs list-tasks --cluster $Cluster --service-name usuarios --region $Region --query "taskArns[0]" --output text 2>$null
-$apiUrl = "http://localhost:5001"  # fallback
-if ($taskArn -and $taskArn -ne "None") {
-    $eniId = aws ecs describe-tasks --cluster $Cluster --tasks $taskArn --region $Region --query "tasks[0].attachments[0].details[?name=='networkInterfaceId'].value" --output text
-    if ($eniId -and $eniId -ne "None") {
-        $publicIp = aws ec2 describe-network-interfaces --network-interface-ids $eniId --region $Region --query "NetworkInterfaces[0].Association.PublicIp" --output text
-        if ($publicIp -and $publicIp -ne "None") {
-            $apiUrl = "http://${publicIp}:5001"
-        }
-    }
-}
+$apiUrl = $FrontendApiUrl
 
 Write-Host "  API URL: $apiUrl" -ForegroundColor Yellow
 Set-Location frontend
@@ -289,12 +264,13 @@ Set-Location ..
 Write-Host "`n==========================================" -ForegroundColor Green
 Write-Host "DESPLIEGUE COMPLETADO" -ForegroundColor Green
 Write-Host "==========================================" -ForegroundColor Green
-Write-Host "Frontend: http://$FrontendBucket.s3-website.$Region.amazonaws.com" -ForegroundColor Cyan
-Write-Host "Backend (API): $apiUrl/health" -ForegroundColor Cyan
+Write-Host "Frontend seguro: https://d1wkhs3cq8vcom.cloudfront.net" -ForegroundColor Cyan
+Write-Host "Frontend S3 origen: http://$FrontendBucket.s3-website.$Region.amazonaws.com" -ForegroundColor Cyan
+Write-Host "API en frontend build: $apiUrl/api/usuarios/autenticacion/google/configuracion" -ForegroundColor Cyan
 Write-Host "IoT service: corriendo (puerto 5005)" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Siguientes pasos manuales:" -ForegroundColor Yellow
-Write-Host "  1. Agregar en Google Cloud Console -> Credenciales -> Authorized JS origins:" -ForegroundColor Yellow
-Write-Host "     http://$FrontendBucket.s3-website.$Region.amazonaws.com" -ForegroundColor Yellow
+Write-Host "  1. Asegurar en Google Cloud Console -> Authorized JS origins:" -ForegroundColor Yellow
+Write-Host "     https://d1wkhs3cq8vcom.cloudfront.net" -ForegroundColor Yellow
 Write-Host "  2. Ver logs: aws logs get-log-events --log-group-name /ecs/psicoconecta-usuarios --region $Region" -ForegroundColor Yellow
 Write-Host "  3. Seed datos: aws ecs execute-command --cluster $Cluster --task `$(aws ecs list-tasks --cluster $Cluster --service-name usuarios --query 'taskArns[0]' --output text) --container usuarios --interactive --command 'python datos_iniciales.py'" -ForegroundColor Yellow

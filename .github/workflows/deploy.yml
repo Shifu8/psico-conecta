@@ -6,6 +6,7 @@ env:
   AWS_REGION: us-east-2
   ECS_CLUSTER: psicoconecta
   FRONTEND_S3_BUCKET: psicoconecta-frontend-060899556466
+  CLOUDFRONT_URL: https://d1wkhs3cq8vcom.cloudfront.net
 
 jobs:
   deploy:
@@ -91,17 +92,16 @@ jobs:
       - name: Build frontend
         env:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
         run: |
-          ALB_DNS=$(aws elbv2 describe-load-balancers \
-            --names psicoconecta-alb \
-            --region "$AWS_REGION" \
-            --query 'LoadBalancers[0].DNSName' \
-            --output text)
-          export VITE_API_URL="http://$ALB_DNS"
+          export VITE_API_URL="$CLOUDFRONT_URL"
           export VITE_GOOGLE_CLIENT_ID="${VITE_GOOGLE_CLIENT_ID:-339658076678-kah0e205d5asf6ufnlh009lh5i4g8u70.apps.googleusercontent.com}"
           cd frontend
           echo "VITE_API_URL=$VITE_API_URL" > .env
           echo "VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID" >> .env
+          if [ -n "$VITE_TURNSTILE_SITE_KEY" ]; then
+            echo "VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY" >> .env
+          fi
           npm install
           npm run build
           echo "Frontend built with VITE_API_URL=$VITE_API_URL"
