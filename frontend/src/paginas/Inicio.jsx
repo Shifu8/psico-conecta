@@ -157,9 +157,6 @@ export default function Inicio() {
                 <Link to="/registro" className="boton-primario">
                   Comenzar ahora <ArrowRight size={18} />
                 </Link>
-                <Link to="/iniciar-sesion" className="boton-secundario">
-                  Iniciar sesión
-                </Link>
               </div>
               <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-slate-600 dark:text-slate-300">
                 {["Atención organizada", "Información privada", "Acompañamiento continuo"].map((texto) => (

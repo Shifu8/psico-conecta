@@ -134,7 +134,7 @@ export default function InicioSesion() {
           onChange={actualizar}
           error={tocados.password ? erroresFormulario.password : ""}
           autoComplete="current-password"
-          maxLength={128}
+          maxLength={15}
           required
         />
         {captchaHabilitado && (

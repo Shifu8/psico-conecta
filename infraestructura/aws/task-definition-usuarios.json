@@ -28,10 +28,10 @@
       "secrets": [
         {"name": "SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/SECRET_KEY"},
         {"name": "JWT_SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/JWT_SECRET_KEY"},
-        {"name": "GOOGLE_CLIENT_ID", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/GOOGLE_CLIENT_ID"},
-        {"name": "GOOGLE_CLIENT_SECRET", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/GOOGLE_CLIENT_SECRET"},
-        {"name": "GOOGLE_REFRESH_TOKEN", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/GOOGLE_REFRESH_TOKEN"},
-        {"name": "GOOGLE_SENDER_EMAIL", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/GOOGLE_SENDER_EMAIL"}
+        {"name": "GOOGLE_CLIENT_ID", "valueFrom": "psicoconecta/GOOGLE_CLIENT_ID"},
+        {"name": "GOOGLE_CLIENT_SECRET", "valueFrom": "psicoconecta/GOOGLE_CLIENT_SECRET"},
+        {"name": "GOOGLE_REFRESH_TOKEN", "valueFrom": "psicoconecta/GOOGLE_REFRESH_TOKEN"},
+        {"name": "GOOGLE_SENDER_EMAIL", "valueFrom": "psicoconecta/GOOGLE_SENDER_EMAIL"}
       ],
       "logConfiguration": {
         "logDriver": "awslogs",

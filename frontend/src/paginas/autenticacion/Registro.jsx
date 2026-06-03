@@ -194,7 +194,7 @@ export default function Registro() {
           autoComplete="new-password"
           ayuda={AYUDA_CONTRASENA}
           minLength={8}
-          maxLength={128}
+          maxLength={15}
           required
         />
         <div className="sm:col-span-2">

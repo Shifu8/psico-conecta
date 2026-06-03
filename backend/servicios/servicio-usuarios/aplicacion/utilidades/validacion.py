@@ -16,7 +16,7 @@ WEAK_PASSWORDS = {
     "qwerty123*",
 }
 PASSWORD_MESSAGE = (
-    "La contraseña debe tener entre 8 y 128 caracteres, una mayúscula, "
+    "La contraseña debe tener entre 8 y 15 caracteres, una mayúscula, "
     "una minúscula, un número y un carácter especial, sin espacios."
 )
 
@@ -59,7 +59,7 @@ def validate_phone(value):
 
 def validate_password(value):
     if (
-        not 8 <= len(value) <= 128
+        not 8 <= len(value) <= 15
         or any(character.isspace() for character in value)
         or not any(character.isupper() for character in value)
         or not any(character.islower() for character in value)

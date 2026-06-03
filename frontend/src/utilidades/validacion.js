@@ -12,13 +12,13 @@ const CONTRASENAS_DEBILES = new Set([
 ]);
 
 export const AYUDA_CONTRASENA =
-  "Usa de 8 a 128 caracteres con mayúscula, minúscula, número y carácter especial.";
+  "Usa de 8 a 15 caracteres con mayúscula, minúscula, número y carácter especial.";
 
 export const obtenerRequisitosContrasena = (valor = "") => [
   {
     id: "longitud",
-    texto: "Entre 8 y 128 caracteres",
-    cumplido: valor.length >= 8 && valor.length <= 128,
+    texto: "Entre 8 y 15 caracteres",
+    cumplido: valor.length >= 8 && valor.length <= 15,
   },
   {
     id: "mayuscula",
@@ -99,7 +99,7 @@ export const validarContrasena = (valor) => {
   if (!valor) return "La contraseña es obligatoria.";
   if (
     valor.length < 8 ||
-    valor.length > 128 ||
+    valor.length > 15 ||
     /\s/.test(valor) ||
     !/[A-ZÁÉÍÓÚÜÑ]/.test(valor) ||
     !/[a-záéíóúüñ]/.test(valor) ||
@@ -115,7 +115,7 @@ export const validarContrasena = (valor) => {
 
 export const validarPasswordRequerido = (valor) => {
   if (!valor) return "La contraseña es obligatoria.";
-  if (valor.length > 128) return "La contraseña no puede superar los 128 caracteres.";
+  if (valor.length > 15) return "La contraseña no puede superar los 15 caracteres.";
   return "";
 };
 

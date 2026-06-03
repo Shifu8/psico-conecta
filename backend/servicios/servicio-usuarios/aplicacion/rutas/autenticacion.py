@@ -78,7 +78,7 @@ def forgot_password():
     data = ForgotPasswordSchema().load(request.get_json(silent=True) or {})
     verificar_captcha(data.get("captcha_token"), request.remote_addr)
     token = create_password_reset(data["email"])
-    response = {"message": "Si el correo existe, recibirás instrucciones por correo."}
+    response = {"message": "Si el correo está registrado, recibirás instrucciones por correo."}
     if token:
         resultado = enviar_correo_recuperacion(data["email"], token)
         response["correo_enviado"] = resultado["enviado"]

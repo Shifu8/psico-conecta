@@ -12,10 +12,21 @@ def configuracion_gmail_completa():
         "GOOGLE_REFRESH_TOKEN",
         "GOOGLE_SENDER_EMAIL",
     )
-    return all(current_app.config.get(variable) for variable in variables)
+    faltantes = [
+        variable
+        for variable in variables
+        if not str(current_app.config.get(variable, "")).strip()
+    ]
+    if faltantes:
+        current_app.logger.warning(
+            "Gmail API no configurada. Faltan variables: %s",
+            ", ".join(faltantes),
+        )
+    return not faltantes
 
 
 def _crear_cliente_gmail():
+    from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
 
@@ -27,6 +38,8 @@ def _crear_cliente_gmail():
         client_secret=current_app.config["GOOGLE_CLIENT_SECRET"],
         scopes=["https://www.googleapis.com/auth/gmail.send"],
     )
+    if not credenciales.valid and credenciales.refresh_token:
+        credenciales.refresh(Request())
     return build("gmail", "v1", credentials=credenciales, cache_discovery=False)
 
 

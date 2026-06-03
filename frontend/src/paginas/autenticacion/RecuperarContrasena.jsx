@@ -66,7 +66,7 @@ export default function RecuperarContrasena() {
         Recupera tu acceso
       </h1>
       <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-        Te enviaremos un enlace para restablecer tu contraseña.
+        Te enviaremos un enlace si el correo está registrado en PsicoConecta.
       </p>
       <form onSubmit={enviar} className="mt-7 space-y-4" noValidate>
         <CampoFormulario
