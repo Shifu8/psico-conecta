@@ -47,6 +47,14 @@ PostgreSQL usa una sola instancia para optimizar costos académicos:
 DynamoDB usa las tablas `emociones`, `lecturas_iot`, `notificaciones` y
 `logs_iot`.
 
+## Alcance de seguridad actual
+
+El frontend y el servicio de usuarios incluyen validación de entradas,
+autenticación JWT, control de acceso por rol y límite de intentos de inicio de
+sesión. Los servicios de citas, teleconsulta, pagos e inteligencia IoT siguen
+siendo esqueletos locales en memoria: no deben exponerse públicamente hasta
+implementar persistencia, autenticación y autorización por propietario.
+
 ## Estructura principal
 
 ```text
@@ -80,7 +88,7 @@ PsicoConecta-main/
 
 ### 1. Servicio de usuarios
 
-La demostración puede ejecutarse con SQLite sin instalar Docker:
+La demostración local requiere PostgreSQL. Copia `backend/servicios/servicio-usuarios/.env.example` a `.env` antes de iniciar el servicio.
 
 ```powershell
 cd backend\servicios\servicio-usuarios

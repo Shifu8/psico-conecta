@@ -1,0 +1,84 @@
+name: Deploy to AWS ECS
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - name: puerta-enlace
+            path: backend/puerta-enlace-api
+            port: 5000
+          - name: usuarios
+            path: backend/servicios/servicio-usuarios
+            port: 5001
+          - name: citas
+            path: backend/servicios/servicio-citas
+            port: 5002
+          - name: teleconsulta
+            path: backend/servicios/servicio-teleconsulta
+            port: 5003
+          - name: pagos
+            path: backend/servicios/servicio-pagos
+            port: 5004
+          - name: iot
+            path: backend/servicios/servicio-inteligencia-iot
+            port: 5005
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-2' }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: psicoconecta/${{ matrix.service.name }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f ${{ matrix.service.path }}/Dockerfile .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-2' }}
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Deploy to S3
+        run: |
+          aws s3 sync frontend/dist/ s3://psicoconecta-frontend-${{ secrets.AWS_ACCOUNT_ID }} --delete
+
+      - name: Invalidate CloudFront
+        run: |
+          CF_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Origins.Items[?DomainName.contains(@, 'psicoconecta-frontend')]].Id" --output text 2>/dev/null || true)
+          if [ -n "$CF_ID" ]; then
+            aws cloudfront create-invalidation --distribution-id $CF_ID --paths "/*" || true
+          fi

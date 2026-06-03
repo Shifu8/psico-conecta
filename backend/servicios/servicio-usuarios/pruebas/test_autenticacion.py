@@ -170,7 +170,7 @@ def test_recuperacion_token_invalido(client):
         json={"token": "token-falso", "password": "NuevaClave123*"},
     )
     assert response.status_code == 400
-    assert "invalido" in response.json["message"]
+    assert "token" in response.json["message"]
 
 
 def test_google_configuracion(client):
@@ -180,16 +180,42 @@ def test_google_configuracion(client):
     assert response.json["habilitado"] is False
 
 
+def test_google_configuracion_usa_client_id_compatible(client, app):
+    app.config["GOOGLE_CLIENT_ID"] = "web-client-id.apps.googleusercontent.com"
+    response = client.get("/api/usuarios/autenticacion/google/configuracion")
+    assert response.status_code == 200
+    assert response.json["habilitado"] is True
+    assert response.json["client_id"] == "web-client-id.apps.googleusercontent.com"
+
+
 def test_google_login_sin_token(client):
     response = client.post("/api/usuarios/autenticacion/google", json={})
     assert response.status_code == 400
     assert "Token" in response.json["message"]
 
 
-def test_google_login_token_invalido(client):
+def test_google_login_sin_configuracion(client):
     response = client.post(
         "/api/usuarios/autenticacion/google",
         json={"credential": "token-falso"},
     )
     assert response.status_code == 400
-    assert "valido" in response.json["message"]
+    assert "configurado" in response.json["message"]
+
+
+def test_google_login_token_invalido(client, app, monkeypatch):
+    app.config["GOOGLE_LOGIN_CLIENT_ID"] = "web-client-id.apps.googleusercontent.com"
+
+    def rechazar_token(*_args, **_kwargs):
+        raise ValueError
+
+    monkeypatch.setattr(
+        "aplicacion.servicios.servicio_google_login.id_token.verify_oauth2_token",
+        rechazar_token,
+    )
+    response = client.post(
+        "/api/usuarios/autenticacion/google",
+        json={"credential": "token-falso"},
+    )
+    assert response.status_code == 400
+    assert "token" in response.json["message"]

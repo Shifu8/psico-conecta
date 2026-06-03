@@ -6,6 +6,8 @@ from aplicacion.modelos import User
 
 def get_current_user():
     identity = get_jwt_identity()
-    return db.session.get(User, int(identity)) if identity else None
-
+    try:
+        return db.session.get(User, int(identity)) if identity else None
+    except (TypeError, ValueError):
+        return None
 

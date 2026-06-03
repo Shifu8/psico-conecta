@@ -30,5 +30,81 @@ services:
       postgres:
         condition: service_healthy
 
+  servicio-usuarios:
+    image: python:3.11-slim
+    container_name: psicoconecta-usuarios
+    working_dir: /app
+    volumes:
+      - ./backend/servicios/servicio-usuarios:/app:ro
+    env_file:
+      - ./backend/servicios/servicio-usuarios/.env.example
+      - ./.env.example
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python ejecutar.py"
+    ports:
+      - "5001:5001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  servicio-citas:
+    image: python:3.11-slim
+    container_name: psicoconecta-citas
+    working_dir: /app
+    volumes:
+      - ./backend/servicios/servicio-citas:/app:ro
+    env_file:
+      - ./.env.example
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
+    ports:
+      - "5002:5002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  servicio-teleconsulta:
+    image: python:3.11-slim
+    container_name: psicoconecta-teleconsulta
+    working_dir: /app
+    volumes:
+      - ./backend/servicios/servicio-teleconsulta:/app:ro
+    env_file:
+      - ./.env.example
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
+    ports:
+      - "5003:5003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  servicio-pagos:
+    image: python:3.11-slim
+    container_name: psicoconecta-pagos
+    working_dir: /app
+    volumes:
+      - ./backend/servicios/servicio-pagos:/app:ro
+    env_file:
+      - ./.env.example
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
+    ports:
+      - "5004:5004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  servicio-inteligencia-iot:
+    image: python:3.11-slim
+    container_name: psicoconecta-iot
+    working_dir: /app
+    volumes:
+      - ./backend/servicios/servicio-inteligencia-iot:/app:ro
+    env_file:
+      - ./.env.example
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
+    ports:
+      - "5005:5005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:

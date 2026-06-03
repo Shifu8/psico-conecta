@@ -26,6 +26,12 @@ export function ProveedorAutenticacion({ children }) {
       .finally(() => setCargando(false));
   }, []);
 
+  useEffect(() => {
+    const limpiarSesion = () => setUsuario(null);
+    window.addEventListener("psicoconecta:sesion-expirada", limpiarSesion);
+    return () => window.removeEventListener("psicoconecta:sesion-expirada", limpiarSesion);
+  }, []);
+
   const entrar = async (credenciales) => {
     const { data } = await iniciarSesion(credenciales);
     localStorage.setItem("psicoconecta_token", data.access_token);

@@ -4,7 +4,6 @@ Genera un enlace para autorizar y obtener el refresh token manualmente.
 
 REQUISITO: pip install google-auth-oauthlib requests
 """
-import json
 import os
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -16,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent
 CLIENT_CONFIG = {
     "installed": {
         "client_id": os.environ.get("GOOGLE_CLIENT_ID", "TU_CLIENT_ID.apps.googleusercontent.com"),
-        "project_id": "endless-comfort-498004-h6",
+        "project_id": os.environ.get("GOOGLE_PROJECT_ID", ""),
         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
         "token_uri": "https://oauth2.googleapis.com/token",
         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
@@ -38,10 +37,23 @@ def main():
     print("CONFIGURACION DE GMAIL API + GOOGLE LOGIN")
     print("=" * 60)
     print()
+    if (
+        CLIENT_CONFIG["installed"]["client_id"].startswith("TU_")
+        or CLIENT_CONFIG["installed"]["client_secret"].startswith("TU_")
+    ):
+        print("Configura GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET antes de continuar.")
+        return
+
+    sender_email = input("Correo remitente autorizado para Gmail API: ").strip().lower()
+    if "@" not in sender_email:
+        print("Ingresa un correo remitente válido.")
+        return
+
+    print()
     print("Paso 1: Abre este enlace en el NAVEGADOR")
     print()
-    print("  IMPORTANTE: Asegurate de iniciar sesion con:")
-    print("  brandon.medina@unl.edu.ec")
+    print("  IMPORTANTE: Asegúrate de iniciar sesión con:")
+    print(f"  {sender_email}")
     print()
 
     from google_auth_oauthlib.flow import InstalledAppFlow
@@ -86,11 +98,11 @@ def main():
         flow.fetch_token(code=code)
         credenciales = flow.credentials
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error de autorización: {type(e).__name__}")
         print()
         print("Alternativa manual:")
         print("1. Abre el enlace de arriba")
-        print("2. Autoriza con brandon.medina@unl.edu.ec")
+        print(f"2. Autoriza con {sender_email}")
         print("3. Te redirigira a una URL como:")
         print("   http://localhost/?code=4/0A...&scope=...")
         print("4. Copia el codigo '4/0A...' (entre code= y &scope)")
@@ -106,15 +118,13 @@ def main():
         }
         r = requests.post("https://oauth2.googleapis.com/token", data=token_data)
         if r.status_code != 200:
-            print(f"Error al intercambiar codigo: {r.text}")
+            print(f"Error al intercambiar código. Estado HTTP: {r.status_code}")
             return
         tokens = r.json()
         credenciales = tokens
         refresh_token = tokens.get("refresh_token")
-        id_token_str = tokens.get("id_token", "")
     else:
         refresh_token = credenciales.refresh_token
-        id_token_str = ""
 
     if not refresh_token:
         print()
@@ -129,9 +139,6 @@ def main():
     print("=" * 60)
     print()
 
-    # Get user email from the id_token or ask
-    info = {"email": "brandon.medina@unl.edu.ec", "given_name": "Brandon"}
-
     env_path = BASE_DIR / ".env"
     env_content = ""
     if env_path.exists():
@@ -142,15 +149,11 @@ def main():
         "GOOGLE_CLIENT_ID": CLIENT_CONFIG["installed"]["client_id"],
         "GOOGLE_CLIENT_SECRET": CLIENT_CONFIG["installed"]["client_secret"],
         "GOOGLE_REFRESH_TOKEN": refresh_token,
-        "GOOGLE_SENDER_EMAIL": info["email"],
+        "GOOGLE_SENDER_EMAIL": sender_email,
     }
 
-    print("Variables a escribir en .env:")
+    print("Variables OAuth preparadas para escribir en .env.")
     print()
-    for var, valor in nuevas_vars.items():
-        print(f"  {var}={valor}")
-    print()
-
     if input("Escribir estas variables en .env? (s/n): ").strip().lower() == "s":
         lineas = env_content.splitlines() if env_content else []
         keys_actualizadas = set()

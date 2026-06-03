@@ -40,6 +40,8 @@ def edit_user(user_id):
     if current_user.id != user_id and not is_admin:
         return jsonify(message="No tienes permisos para editar este perfil."), 403
     data = UserUpdateSchema().load(request.get_json(silent=True) or {})
+    if not data:
+        raise ValueError("Envía al menos un campo para actualizar el perfil.")
     if "role" in data and not is_admin:
         return jsonify(message="Solo un administrador puede cambiar roles."), 403
     user = db.get_or_404(User, user_id, description="Usuario no encontrado.")
@@ -63,5 +65,4 @@ def change_status(user_id):
     return jsonify(
         message="Estado actualizado.", user=set_user_status(user, data["status"]).to_dict()
     )
-
 

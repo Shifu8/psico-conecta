@@ -27,8 +27,6 @@ class User(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
-            "cognito_sub": self.cognito_sub,
-            "google_id": self.google_id,
             "first_name": self.first_name,
             "last_name": self.last_name,
             "full_name": f"{self.first_name} {self.last_name}",
@@ -39,4 +37,3 @@ class User(db.Model):
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
-

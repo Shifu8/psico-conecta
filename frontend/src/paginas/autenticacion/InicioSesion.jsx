@@ -1,16 +1,27 @@
+import { GoogleLogin } from "@react-oauth/google";
 import { LogIn } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
 import CampoFormulario from "../../componentes/CampoFormulario";
 import { usarAutenticacion } from "../../contexto/ContextoAutenticacion";
+import { rutaInicialPorRol } from "../../servicios/servicioAutenticacion";
 import {
-  rutaInicialPorRol,
-} from "../../servicios/servicioAutenticacion";
+  normalizarCorreo,
+  obtenerMensajeApi,
+  validarCorreo,
+  validarPasswordRequerido,
+} from "../../utilidades/validacion";
+
+const validarFormulario = (formulario) => ({
+  email: validarCorreo(formulario.email),
+  password: validarPasswordRequerido(formulario.password),
+});
 
 export default function InicioSesion() {
+  const googleHabilitado = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim());
   const [formulario, setFormulario] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [tocados, setTocados] = useState({});
   const [procesando, setProcesando] = useState(false);
   const [googleError, setGoogleError] = useState("");
   const { entrar, googleLogin } = usarAutenticacion();
@@ -19,19 +30,34 @@ export default function InicioSesion() {
 
   const actualizar = ({ target }) => {
     setFormulario((actual) => ({ ...actual, [target.name]: target.value }));
+    setTocados((actual) => ({ ...actual, [target.name]: true }));
   };
+
+  const erroresFormulario = validarFormulario(formulario);
 
   const enviar = async (evento) => {
     evento.preventDefault();
+    if (procesando) return;
+    const credenciales = {
+      ...formulario,
+      email: normalizarCorreo(formulario.email),
+    };
+    const errores = validarFormulario(credenciales);
+    setFormulario(credenciales);
+    setTocados({ email: true, password: true });
     setError("");
+    if (Object.values(errores).some(Boolean)) {
+      setError("Revisa tus credenciales antes de continuar.");
+      return;
+    }
     setProcesando(true);
     try {
-      const usuario = await entrar(formulario);
+      const usuario = await entrar(credenciales);
       navegar(ubicacion.state?.from?.pathname || rutaInicialPorRol(usuario.role), {
         replace: true,
       });
     } catch (excepcion) {
-      setError(excepcion.response?.data?.message || "No fue posible iniciar sesion.");
+      setError(obtenerMensajeApi(excepcion, "No fue posible iniciar sesión."));
     } finally {
       setProcesando(false);
     }
@@ -47,28 +73,33 @@ export default function InicioSesion() {
         Accede a tu espacio personal de PsicoConecta.
       </p>
 
-      <form onSubmit={enviar} className="mt-7 space-y-4">
+      <form onSubmit={enviar} className="mt-7 space-y-4" noValidate>
         <CampoFormulario
-          etiqueta="Correo electronico"
+          etiqueta="Correo electrónico"
           name="email"
           type="email"
           value={formulario.email}
           onChange={actualizar}
+          onBlur={() => setFormulario((actual) => ({ ...actual, email: normalizarCorreo(actual.email) }))}
+          error={tocados.email ? erroresFormulario.email : ""}
           autoComplete="email"
+          maxLength={255}
           required
         />
         <CampoFormulario
-          etiqueta="Contrasena"
+          etiqueta="Contraseña"
           name="password"
           type="password"
           value={formulario.password}
           onChange={actualizar}
+          error={tocados.password ? erroresFormulario.password : ""}
           autoComplete="current-password"
+          maxLength={128}
           required
         />
         {error && <p className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-200">{error}</p>}
         <div className="flex justify-end">
-          <Link to="/recuperar-contrasena" className="text-sm font-bold text-bosque-600 hover:text-bosque-700 dark:text-teal-300 dark:hover:text-teal-200">
+          <Link to="/recuperar-contrasena" className="text-sm font-bold text-blue-600 transition hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200">
             Olvidé mi contraseña
           </Link>
         </div>
@@ -84,32 +115,36 @@ export default function InicioSesion() {
         <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
       </div>
 
-      {googleError && (
-        <p className="mb-2 text-center text-xs text-red-500">{googleError}</p>
+      {googleError && <p className="mb-2 text-center text-xs text-red-500">{googleError}</p>}
+      {googleHabilitado ? (
+        <div className="flex justify-center">
+          <GoogleLogin
+            onSuccess={async (response) => {
+              try {
+                setGoogleError("");
+                const usuario = await googleLogin(response.credential);
+                navegar(ubicacion.state?.from?.pathname || rutaInicialPorRol(usuario.role), {
+                  replace: true,
+                });
+              } catch (excepcion) {
+                setGoogleError(excepcion.response?.data?.message || "Error al iniciar sesión con Google.");
+              }
+            }}
+            onError={() => setGoogleError("No se pudo iniciar sesión con Google.")}
+            size="large"
+            text="signin_with"
+            shape="rectangular"
+          />
+        </div>
+      ) : (
+        <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+          El inicio con Google no está configurado en este entorno.
+        </p>
       )}
-      <div className="flex justify-center">
-        <GoogleLogin
-          onSuccess={async (response) => {
-            try {
-              setGoogleError("");
-              const usuario = await googleLogin(response.credential);
-              navegar(ubicacion.state?.from?.pathname || rutaInicialPorRol(usuario.role), {
-                replace: true,
-              });
-            } catch (e) {
-              setGoogleError(e.response?.data?.message || "Error al iniciar sesion con Google.");
-            }
-          }}
-          onError={() => setGoogleError("No se pudo iniciar sesion con Google.")}
-          size="large"
-          text="signin_with"
-          shape="rectangular"
-        />
-      </div>
 
       <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
         ¿No tienes cuenta?{" "}
-        <Link to="/registro" className="font-bold text-bosque-600 dark:text-teal-300">
+        <Link to="/registro" className="font-bold text-blue-600 dark:text-blue-300">
           Regístrate
         </Link>
       </p>
