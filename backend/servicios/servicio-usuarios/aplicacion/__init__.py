@@ -1,4 +1,6 @@
-﻿from flask import Flask, jsonify
+﻿import os
+
+from flask import Flask, jsonify
 from marshmallow import ValidationError
 from werkzeug.exceptions import HTTPException
 
@@ -30,9 +32,23 @@ def create_app(test_config=None):
     app.register_blueprint(roles_bp)
     app.register_blueprint(dashboard_bp)
 
+    with app.app_context():
+        db.create_all()
+
     @app.get("/health")
     def health():
         return jsonify(estado="ok", servicio="servicio-usuarios")
+
+    @app.post("/seed")
+    def seed():
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+        from datos_iniciales import seed_database
+        try:
+            seed_database()
+            return jsonify(message="Base de datos inicializada con datos demo."), 201
+        except Exception as e:
+            return jsonify(message=str(e)), 500
 
     @jwt.token_in_blocklist_loader
     def token_is_revoked(_jwt_header, jwt_payload):
