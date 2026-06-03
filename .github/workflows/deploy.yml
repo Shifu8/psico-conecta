@@ -2,6 +2,12 @@ name: Deploy to AWS ECS
 on:
   push:
     branches: [main]
+env:
+  AWS_REGION: us-east-2
+  ECS_CLUSTER: psicoconecta
+  FRONTEND_S3_BUCKET: psicoconecta-frontend-060899556466
+  VITE_API_URL: http://060899556466.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/puerta-enlace:latest
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -11,21 +17,27 @@ jobs:
           - name: puerta-enlace
             path: backend/puerta-enlace-api
             port: 5000
+            task-def: infraestructura/aws/task-definition-puerta-enlace.json
           - name: usuarios
             path: backend/servicios/servicio-usuarios
             port: 5001
+            task-def: infraestructura/aws/task-definition-usuarios.json
           - name: citas
             path: backend/servicios/servicio-citas
             port: 5002
+            task-def: ""
           - name: teleconsulta
             path: backend/servicios/servicio-teleconsulta
             port: 5003
+            task-def: ""
           - name: pagos
             path: backend/servicios/servicio-pagos
             port: 5004
+            task-def: ""
           - name: iot
             path: backend/servicios/servicio-inteligencia-iot
             port: 5005
+            task-def: infraestructura/aws/task-definition-iot.json
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +46,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION || 'us-east-2' }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -53,6 +65,20 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
+      - name: Update ECS service (if task definition exists)
+        if: ${{ matrix.service.task-def != '' }}
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID || '060899556466' }}
+          TASK_DEF_FILE: ${{ matrix.service.task-def }}
+        run: |
+          # Reemplazar ACCOUNT_ID placeholder
+          sed -i "s/ACCOUNT_ID/$AWS_ACCOUNT_ID/g" $TASK_DEF_FILE
+          # Registrar nueva task definition
+          TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://$TASK_DEF_FILE --region $AWS_REGION --query "taskDefinition.taskDefinitionArn" --output text)
+          echo "Task definition: $TASK_DEF_ARN"
+          # Actualizar servicio ECS
+          aws ecs update-service --cluster $ECS_CLUSTER --service ${{ matrix.service.name }} --task-definition $TASK_DEF_ARN --force-new-deployment --region $AWS_REGION
+
   deploy-frontend:
     runs-on: ubuntu-latest
     needs: deploy
@@ -64,17 +90,23 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION || 'us-east-2' }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Build frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL_PROD || 'http://localhost:5173' }}
         run: |
           cd frontend
+          echo "VITE_API_URL=$VITE_API_URL" > .env
+          echo "VITE_GOOGLE_CLIENT_ID=339658076678-kah0e205d5asf6ufnlh009lh5i4g8u70.apps.googleusercontent.com" >> .env
           npm install
           npm run build
+          echo "Frontend built with VITE_API_URL=$VITE_API_URL"
 
       - name: Deploy to S3
         run: |
-          aws s3 sync frontend/dist/ s3://psicoconecta-frontend-${{ secrets.AWS_ACCOUNT_ID }} --delete
+          aws s3 sync frontend/dist/ s3://$FRONTEND_S3_BUCKET --delete
+          aws s3 website s3://$FRONTEND_S3_BUCKET --index-document index.html --error-document index.html
 
       - name: Invalidate CloudFront
         run: |

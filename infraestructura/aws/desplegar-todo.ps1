@@ -2,7 +2,8 @@ param(
     [string]$Region = "us-east-2",
     [string]$Cluster = "psicoconecta",
     [string]$CuentaAWS = "",
-    [string]$FrontendBucket = "psicoconecta-frontend-060899556466"
+    [string]$FrontendBucket = "psicoconecta-frontend-060899556466",
+    [string]$GoogleClientId = ""
 )
 
 if (-not $CuentaAWS) {
@@ -10,6 +11,35 @@ if (-not $CuentaAWS) {
 }
 
 Write-Host "=== DESPLIEGUE COMPLETO PSICOCONECTA ===" -ForegroundColor Green
+
+# ============================================================
+# 0. FIJAR IAM ROLE (permisos para leer Secrets Manager)
+# ============================================================
+Write-Host "=== 0. FIJANDO IAM ROLE ===" -ForegroundColor Yellow
+$roleName = "ecsTaskExecutionRole"
+$policyExists = aws iam list-attached-role-policies --role-name $roleName --region $Region --query "AttachedPolicies[?PolicyName=='SecretsManagerReadAccess'].PolicyName" --output text 2>$null
+if (-not $policyExists) {
+    Write-Host "  Agregando SecretsManagerReadAccess al role..." -ForegroundColor Yellow
+    aws iam attach-role-policy --role-name $roleName --policy-arn arn:aws:iam::aws:policy/SecretsManagerReadWrite 2>$null
+    # Alternativa: crear inline policy solo para GetSecretValue
+    $inlinePolicy = @"
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "secretsmanager:GetSecretValue",
+            "Resource": "arn:aws:secretsmanager:us-east-2:*:secret:psicoconecta/*"
+        }
+    ]
+}
+"@
+    aws iam put-role-policy --role-name $roleName --policy-name psicoconecta-secrets --policy-document $inlinePolicy 2>$null
+    Write-Host "  Política psicoconecta-secrets agregada." -ForegroundColor Green
+} else {
+    Write-Host "  SecretsManagerReadAccess ya existe" -ForegroundColor Gray
+}
+Write-Host ""
 Write-Host "Region: $Region" -ForegroundColor Cyan
 Write-Host "Cuenta: $CuentaAWS" -ForegroundColor Cyan
 Write-Host ""
@@ -22,11 +52,8 @@ Write-Host "=== 1. CREANDO SECRETS ===" -ForegroundColor Yellow
 # GOOGLE_CLIENT_SECRET
 $secretExists = aws secretsmanager list-secrets --region $Region --query "SecretList[?Name=='psicoconecta/GOOGLE_CLIENT_SECRET'].Name" --output text
 if (-not $secretExists) {
-    Write-Host "  Creando psicoconecta/GOOGLE_CLIENT_SECRET..." -ForegroundColor Gray
-    aws secretsmanager create-secret `
-        --name "psicoconecta/GOOGLE_CLIENT_SECRET" `
-        --secret-string '{"GOOGLE_CLIENT_SECRET":"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"}' `
-        --region $Region
+    Write-Host "  [!] GOOGLE_CLIENT_SECRET no existe. Crearlo manualmente:" -ForegroundColor Yellow
+    Write-Host "  aws secretsmanager create-secret --name psicoconecta/GOOGLE_CLIENT_SECRET --secret-string '{\"GOOGLE_CLIENT_SECRET\":\"<tu-client-secret>\"}' --region $Region" -ForegroundColor Yellow
 } else {
     Write-Host "  psicoconecta/GOOGLE_CLIENT_SECRET ya existe" -ForegroundColor Gray
 }
@@ -34,8 +61,8 @@ if (-not $secretExists) {
 # GOOGLE_REFRESH_TOKEN
 $secretExists2 = aws secretsmanager list-secrets --region $Region --query "SecretList[?Name=='psicoconecta/GOOGLE_REFRESH_TOKEN'].Name" --output text
 if (-not $secretExists2) {
-    Write-Host "  [!] GOOGLE_REFRESH_TOKEN no existe. Lo necesitas del setup OAuth." -ForegroundColor Yellow
-    Write-Host "  Crealo manualmente: aws secretsmanager create-secret --name psicoconecta/GOOGLE_REFRESH_TOKEN --secret-string '{\"GOOGLE_REFRESH_TOKEN\":\"<tu-refresh-token>\"}' --region $Region" -ForegroundColor Yellow
+    Write-Host "  [!] GOOGLE_REFRESH_TOKEN no existe. Crealo manualmente:" -ForegroundColor Yellow
+    Write-Host "  aws secretsmanager create-secret --name psicoconecta/GOOGLE_REFRESH_TOKEN --secret-string '{\"GOOGLE_REFRESH_TOKEN\":\"<tu-refresh-token>\"}' --region $Region" -ForegroundColor Yellow
 } else {
     Write-Host "  psicoconecta/GOOGLE_REFRESH_TOKEN ya existe" -ForegroundColor Gray
 }
@@ -111,11 +138,32 @@ foreach ($td in $TASK_DEFS) {
 }
 
 # ============================================================
-# 4. ACTUALIZAR SERVICIOS ECS
+# 4. FIJAR SECURITY GROUP (abrir puertos backend)
 # ============================================================
-Write-Host "`n=== 4. ACTUALIZANDO SERVICIOS ECS ===" -ForegroundColor Yellow
+Write-Host "`n=== 4. FIJANDO SECURITY GROUP ===" -ForegroundColor Yellow
+$SG_ID = aws ec2 describe-security-groups --group-names psicoconecta-alb-sg --query "SecurityGroups[0].GroupId" --output text --region $Region 2>$null
+if ($SG_ID -and $SG_ID -ne "None") {
+    $PUERTOS = @(5000, 5001, 5002, 5003, 5004, 5005)
+    foreach ($puerto in $PUERTOS) {
+        aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port $puerto --cidr 0.0.0.0/0 --region $Region 2>$null
+    }
+    Write-Host "  Puertos backend abiertos en SG: $SG_ID" -ForegroundColor Green
+} else {
+    Write-Host "  [!] SG psicoconecta-alb-sg no encontrado, creando..." -ForegroundColor Yellow
+    $VPC_ID = aws ec2 describe-vpcs --filters "Name=isDefault,Values=true" --query "Vpcs[0].VpcId" --output text --region $Region
+    $SG_ID = aws ec2 create-security-group --group-name psicoconecta-alb-sg --description "PsicoConecta services" --vpc-id $VPC_ID --region $Region --query "GroupId" --output text
+    foreach ($puerto in @(80, 443, 5000, 5001, 5002, 5003, 5004, 5005)) {
+        aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port $puerto --cidr 0.0.0.0/0 --region $Region 2>$null
+    }
+    Write-Host "  SG creado: $SG_ID" -ForegroundColor Green
+}
 
-# Obtener subnets y SG de la VPC default
+# ============================================================
+# 5. ACTUALIZAR SERVICIOS ECS
+# ============================================================
+Write-Host "`n=== 5. ACTUALIZANDO SERVICIOS ECS ===" -ForegroundColor Yellow
+
+# Obtener subnets de la VPC default
 $VPC_ID = aws ec2 describe-vpcs --filters "Name=isDefault,Values=true" --query "Vpcs[0].VpcId" --output text --region $Region
 $SUBNETS = aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" --query "Subnets[?MapPublicIpOnLaunch].[SubnetId]" --output text --region $Region
 $SG_ID = aws ec2 describe-security-groups --group-names psicoconecta-alb-sg --query "SecurityGroups[0].GroupId" --output text --region $Region
@@ -150,9 +198,9 @@ Start-Sleep -Seconds 15
 aws ecs describe-services --cluster $Cluster --services usuarios,puerta-enlace --region $Region --query "services[*].[serviceName,status,runningCount,desiredCount]" --output table
 
 # ============================================================
-# 5. OBTENER IP PUBLICA DEL SERVICIO USUARIOS
+# 6. OBTENER IP PUBLICA DEL SERVICIO USUARIOS
 # ============================================================
-Write-Host "`n=== 5. OBTENIENDO IP DEL SERVICIO USUARIOS ===" -ForegroundColor Yellow
+Write-Host "`n=== 6. OBTENIENDO IP DEL SERVICIO USUARIOS ===" -ForegroundColor Yellow
 Start-Sleep -Seconds 10
 
 $taskArn = aws ecs list-tasks --cluster $Cluster --service-name usuarios --region $Region --query "taskArns[0]" --output text
@@ -167,9 +215,9 @@ if ($taskArn -and $taskArn -ne "None") {
 }
 
 # ============================================================
-# 6. CONFIGURAR S3 (SPA ROUTING)
+# 7. CONFIGURANDO S3 (SPA ROUTING)
 # ============================================================
-Write-Host "`n=== 6. CONFIGURANDO S3 ===" -ForegroundColor Yellow
+Write-Host "`n=== 7. CONFIGURANDO S3 ===" -ForegroundColor Yellow
 
 # Configurar error document para SPA routing
 $bucketExists = aws s3 ls "s3://$FrontendBucket" 2>$null
@@ -201,16 +249,52 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 # ============================================================
-# 7. RESUMEN
+# 8. RECONSTRUIR FRONTEND Y SUBIR
+# ============================================================
+Write-Host "`n=== 8. RECONSTRUIR FRONTEND CON URL PRODUCCION ===" -ForegroundColor Yellow
+
+# Obtener IP del servicio usuarios
+$taskArn = aws ecs list-tasks --cluster $Cluster --service-name usuarios --region $Region --query "taskArns[0]" --output text 2>$null
+$apiUrl = "http://localhost:5001"  # fallback
+if ($taskArn -and $taskArn -ne "None") {
+    $eniId = aws ecs describe-tasks --cluster $Cluster --tasks $taskArn --region $Region --query "tasks[0].attachments[0].details[?name=='networkInterfaceId'].value" --output text
+    if ($eniId -and $eniId -ne "None") {
+        $publicIp = aws ec2 describe-network-interfaces --network-interface-ids $eniId --region $Region --query "NetworkInterfaces[0].Association.PublicIp" --output text
+        if ($publicIp -and $publicIp -ne "None") {
+            $apiUrl = "http://${publicIp}:5001"
+        }
+    }
+}
+
+Write-Host "  API URL: $apiUrl" -ForegroundColor Yellow
+Set-Location frontend
+"VITE_API_URL=$apiUrl" | Set-Content .env
+if (-not $GoogleClientId) { $GoogleClientId = Read-Host "Ingresa VITE_GOOGLE_CLIENT_ID (deja vacio para saltar)" }
+if ($GoogleClientId) {
+    "VITE_GOOGLE_CLIENT_ID=$GoogleClientId" | Add-Content .env
+}
+npm install 2>$null
+npm run build
+if ($LASTEXITCODE -eq 0) {
+    aws s3 sync dist/ "s3://$FrontendBucket/" --delete
+    Write-Host "  Frontend subido a S3" -ForegroundColor Green
+} else {
+    Write-Host "  [!] Fallo el build del frontend" -ForegroundColor Red
+}
+Set-Location ..
+
+# ============================================================
+# 9. RESUMEN
 # ============================================================
 Write-Host "`n==========================================" -ForegroundColor Green
 Write-Host "DESPLIEGUE COMPLETADO" -ForegroundColor Green
 Write-Host "==========================================" -ForegroundColor Green
-Write-Host "Frontend S3: http://$FrontendBucket.s3-website.$Region.amazonaws.com" -ForegroundColor Cyan
+Write-Host "Frontend: http://$FrontendBucket.s3-website.$Region.amazonaws.com" -ForegroundColor Cyan
+Write-Host "Backend (API): $apiUrl/health" -ForegroundColor Cyan
 Write-Host "IoT service: corriendo (puerto 5005)" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Siguientes pasos manuales:" -ForegroundColor Yellow
-Write-Host "  1. Reconstruir frontend con la IP del backend (paso 5)" -ForegroundColor Yellow
-Write-Host "  2. Subir frontend a S3: aws s3 sync frontend/dist/ s3://$FrontendBucket/" -ForegroundColor Yellow
-Write-Host "  3. Agregar URL del frontend en Google Cloud Console -> Credenciales -> Authorized JS origins" -ForegroundColor Yellow
-Write-Host "  4. Ver logs: aws logs get-log-events --log-group-name /ecs/psicoconecta-usuarios --region $Region" -ForegroundColor Yellow
+Write-Host "  1. Agregar en Google Cloud Console -> Credenciales -> Authorized JS origins:" -ForegroundColor Yellow
+Write-Host "     http://$FrontendBucket.s3-website.$Region.amazonaws.com" -ForegroundColor Yellow
+Write-Host "  2. Ver logs: aws logs get-log-events --log-group-name /ecs/psicoconecta-usuarios --region $Region" -ForegroundColor Yellow
+Write-Host "  3. Seed datos: aws ecs execute-command --cluster $Cluster --task `$(aws ecs list-tasks --cluster $Cluster --service-name usuarios --query 'taskArns[0]' --output text) --container usuarios --interactive --command 'python datos_iniciales.py'" -ForegroundColor Yellow

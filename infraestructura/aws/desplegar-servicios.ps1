@@ -8,6 +8,14 @@ $VPC_ID = aws ec2 describe-vpcs --filters "Name=isDefault,Values=true" --query "
 $SUBNETS = aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" --query "Subnets[?MapPublicIpOnLaunch].[SubnetId]" --output text --region $Region
 $SG_ID = aws ec2 describe-security-groups --group-names psicoconecta-alb-sg --query "SecurityGroups[0].GroupId" --output text --region $Region
 
+# Agregar reglas de inbound para puertos de backend en el SG
+Write-Host "Configurando Security Group para puertos backend..." -ForegroundColor Yellow
+$PUERTOS = @(5000, 5001, 5002, 5003, 5004, 5005)
+foreach ($puerto in $PUERTOS) {
+    aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port $puerto --cidr 0.0.0.0/0 --region $Region 2>$null
+}
+Write-Host "  Puertos $($PUERTOS -join ', ') abiertos en SG $SG_ID" -ForegroundColor Green
+
 $SERVICIOS = @(
     @{name="puerta-enlace"; port=5000; taskDef="infraestructura/aws/task-definition-puerta-enlace.json"},
     @{name="usuarios"; port=5001; taskDef="infraestructura/aws/task-definition-usuarios.json"},
