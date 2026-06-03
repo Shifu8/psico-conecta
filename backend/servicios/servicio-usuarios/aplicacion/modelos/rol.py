@@ -1,10 +1,14 @@
-﻿from aplicacion.extensiones import db
+﻿import os
+
+from aplicacion.extensiones import db
 from aplicacion.modelos.permiso import role_permissions
+
+_SCHEMA = os.environ.get("DATABASE_SCHEMA", "usuarios_schema") or None
 
 
 class Role(db.Model):
     __tablename__ = "roles"
-    __table_args__ = {"schema": "usuarios_schema"}
+    __table_args__ = {"schema": _SCHEMA} if _SCHEMA else {}
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(40), unique=True, nullable=False)

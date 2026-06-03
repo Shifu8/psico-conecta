@@ -1,10 +1,14 @@
-﻿from aplicacion.extensiones import db
+﻿import os
+
+from aplicacion.extensiones import db
 from aplicacion.utilidades.tiempo import utc_now
+
+_SCHEMA = os.environ.get("DATABASE_SCHEMA", "usuarios_schema") or None
 
 
 class User(db.Model):
     __tablename__ = "usuarios"
-    __table_args__ = {"schema": "usuarios_schema"}
+    __table_args__ = {"schema": _SCHEMA} if _SCHEMA else {}
 
     id = db.Column(db.Integer, primary_key=True)
     cognito_sub = db.Column(db.String(255), unique=True, nullable=True)
@@ -15,7 +19,9 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     phone = db.Column(db.String(30), nullable=True)
     role_id = db.Column(
-        db.Integer, db.ForeignKey("usuarios_schema.roles.id"), nullable=False
+        db.Integer,
+        db.ForeignKey(f"{_SCHEMA + '.' if _SCHEMA else ''}roles.id"),
+        nullable=False,
     )
     status = db.Column(db.String(20), nullable=False, default="active")
     created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
