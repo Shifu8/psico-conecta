@@ -12,10 +12,12 @@ import {
   AYUDA_CONTRASENA,
   normalizarCorreo,
   normalizarEspacios,
+  obtenerFechaMaximaAdulto,
   obtenerErroresApi,
   obtenerMensajeApi,
   validarContrasena,
   validarCorreo,
+  validarFechaNacimiento,
   validarNombre,
   validarTelefono,
 } from "../../utilidades/validacion";
@@ -26,9 +28,10 @@ const inicial = {
   email: "",
   password: "",
   phone: "",
+  birth_date: "",
 };
 
-const campos = ["first_name", "last_name", "email", "password", "phone"];
+const campos = ["first_name", "last_name", "email", "password", "phone", "birth_date"];
 
 const validarFormulario = (formulario) => ({
   first_name: validarNombre(formulario.first_name, "El nombre"),
@@ -36,6 +39,7 @@ const validarFormulario = (formulario) => ({
   email: validarCorreo(formulario.email),
   password: validarContrasena(formulario.password),
   phone: validarTelefono(formulario.phone),
+  birth_date: validarFechaNacimiento(formulario.birth_date),
 });
 
 export default function Registro() {
@@ -86,6 +90,7 @@ export default function Registro() {
       last_name: normalizarEspacios(formulario.last_name),
       email: normalizarCorreo(formulario.email),
       phone: normalizarEspacios(formulario.phone),
+      birth_date: formulario.birth_date,
       ...(captchaHabilitado ? { captcha_token: captchaToken } : {}),
     };
     const errores = validarFormulario(datos);
@@ -173,7 +178,6 @@ export default function Registro() {
           required
         />
         <CampoFormulario
-          className="sm:col-span-2"
           etiqueta="Teléfono (opcional)"
           name="phone"
           type="tel"
@@ -183,6 +187,17 @@ export default function Registro() {
           error={errorCampo("phone")}
           autoComplete="tel"
           maxLength={20}
+        />
+        <CampoFormulario
+          etiqueta="Fecha de nacimiento"
+          name="birth_date"
+          type="date"
+          value={formulario.birth_date}
+          onChange={actualizar}
+          error={errorCampo("birth_date")}
+          autoComplete="bday"
+          max={obtenerFechaMaximaAdulto()}
+          required
         />
         <CampoFormulario
           className="sm:col-span-2"

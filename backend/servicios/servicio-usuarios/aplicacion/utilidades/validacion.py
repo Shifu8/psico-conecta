@@ -1,4 +1,5 @@
 import re
+from datetime import date
 
 from marshmallow import ValidationError
 
@@ -55,6 +56,21 @@ def validate_phone(value):
         raise ValidationError(
             "Ingresa un teléfono válido de 7 a 15 dígitos."
         )
+
+
+def _years_ago(years):
+    today = date.today()
+    try:
+        return today.replace(year=today.year - years)
+    except ValueError:
+        return today.replace(month=2, day=28, year=today.year - years)
+
+
+def validate_birth_date(value):
+    if value > _years_ago(18):
+        raise ValidationError("Debes ser mayor de edad para registrarte.")
+    if value < _years_ago(120):
+        raise ValidationError("Ingresa una fecha de nacimiento valida.")
 
 
 def validate_password(value):

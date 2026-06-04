@@ -95,6 +95,27 @@ export const validarTelefono = (valor) => {
   return "";
 };
 
+export const obtenerFechaMaximaAdulto = () => {
+  const fecha = new Date();
+  fecha.setFullYear(fecha.getFullYear() - 18);
+  return fecha.toISOString().slice(0, 10);
+};
+
+export const validarFechaNacimiento = (valor) => {
+  if (!valor) return "La fecha de nacimiento es obligatoria.";
+  const fecha = new Date(`${valor}T00:00:00`);
+  if (Number.isNaN(fecha.getTime())) {
+    return "Ingresa una fecha de nacimiento valida.";
+  }
+  const fechaMinima = new Date();
+  fechaMinima.setFullYear(fechaMinima.getFullYear() - 120);
+  fechaMinima.setHours(0, 0, 0, 0);
+  const fechaMaxima = new Date(`${obtenerFechaMaximaAdulto()}T00:00:00`);
+  if (fecha > fechaMaxima) return "Debes ser mayor de edad para registrarte.";
+  if (fecha < fechaMinima) return "Ingresa una fecha de nacimiento valida.";
+  return "";
+};
+
 export const validarContrasena = (valor) => {
   if (!valor) return "La contraseña es obligatoria.";
   if (

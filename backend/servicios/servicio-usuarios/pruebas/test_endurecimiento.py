@@ -14,6 +14,7 @@ def _register_payload(**changes):
         "last_name": "Perez",
         "email": "ana@example.com",
         "password": "Segura123*",
+        "birth_date": "1990-01-15",
     }
     payload.update(changes)
     return payload

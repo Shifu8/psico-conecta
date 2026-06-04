@@ -16,19 +16,27 @@ class RespuestaCaptcha:
         return json.dumps(self.payload).encode("utf-8")
 
 
+def registro_payload(**changes):
+    payload = {
+        "first_name": "Ana",
+        "last_name": "Perez",
+        "email": "ana@example.com",
+        "password": "Segura123*",
+        "birth_date": "1990-01-15",
+    }
+    payload.update(changes)
+    return payload
+
+
 def test_register_exitoso(client):
     response = client.post(
         "/api/usuarios/autenticacion/registro",
-        json={
-            "first_name": "Ana",
-            "last_name": "Perez",
-            "email": "ana@example.com",
-            "password": "Segura123*",
-        },
+        json=registro_payload(),
     )
     assert response.status_code == 201
     assert response.json["user"]["role"] == "PATIENT"
     assert response.json["user"]["email"] == "ana@example.com"
+    assert response.json["user"]["birth_date"] == "1990-01-15"
     assert "password_hash" not in response.json["user"]
 
 
@@ -37,12 +45,7 @@ def test_register_requiere_captcha_si_configurado(client, app):
 
     response = client.post(
         "/api/usuarios/autenticacion/registro",
-        json={
-            "first_name": "Ana",
-            "last_name": "Perez",
-            "email": "ana@example.com",
-            "password": "Segura123*",
-        },
+        json=registro_payload(),
     )
 
     assert response.status_code == 400
@@ -65,13 +68,7 @@ def test_register_valida_captcha_si_configurado(client, app, monkeypatch):
 
     response = client.post(
         "/api/usuarios/autenticacion/registro",
-        json={
-            "first_name": "Ana",
-            "last_name": "Perez",
-            "email": "ana@example.com",
-            "password": "Segura123*",
-            "captcha_token": "token-ok",
-        },
+        json=registro_payload(captcha_token="token-ok"),
     )
 
     assert response.status_code == 201
@@ -95,13 +92,7 @@ def test_register_rechaza_captcha_invalido(client, app, monkeypatch):
 
     response = client.post(
         "/api/usuarios/autenticacion/registro",
-        json={
-            "first_name": "Ana",
-            "last_name": "Perez",
-            "email": "ana@example.com",
-            "password": "Segura123*",
-            "captcha_token": "token-invalido",
-        },
+        json=registro_payload(captcha_token="token-invalido"),
     )
 
     assert response.status_code == 400
@@ -111,11 +102,11 @@ def test_register_rechaza_captcha_invalido(client, app, monkeypatch):
 def test_register_duplicado(client):
     client.post(
         "/api/usuarios/autenticacion/registro",
-        json={"first_name": "Ana", "last_name": "Perez", "email": "ana@example.com", "password": "Segura123*"},
+        json=registro_payload(),
     )
     response = client.post(
         "/api/usuarios/autenticacion/registro",
-        json={"first_name": "Ana", "last_name": "Perez", "email": "ana@example.com", "password": "OtraClave456*"},
+        json=registro_payload(password="OtraClave456*"),
     )
     assert response.status_code == 400
     assert "existe" in response.json["message"]
@@ -129,10 +120,30 @@ def test_register_campos_faltantes(client):
     assert response.status_code == 400
 
 
+def test_register_requiere_fecha_nacimiento(client):
+    payload = registro_payload()
+    payload.pop("birth_date")
+    response = client.post(
+        "/api/usuarios/autenticacion/registro",
+        json=payload,
+    )
+    assert response.status_code == 400
+    assert "birth_date" in response.json["errors"]
+
+
+def test_register_rechaza_menor_de_edad(client):
+    response = client.post(
+        "/api/usuarios/autenticacion/registro",
+        json=registro_payload(birth_date="2012-01-15"),
+    )
+    assert response.status_code == 400
+    assert "birth_date" in response.json["errors"]
+
+
 def test_register_email_invalido(client):
     response = client.post(
         "/api/usuarios/autenticacion/registro",
-        json={"first_name": "Ana", "last_name": "Perez", "email": "no-es-email", "password": "Segura123*"},
+        json=registro_payload(email="no-es-email"),
     )
     assert response.status_code == 400
 
@@ -140,7 +151,7 @@ def test_register_email_invalido(client):
 def test_register_password_corta(client):
     response = client.post(
         "/api/usuarios/autenticacion/registro",
-        json={"first_name": "Ana", "last_name": "Perez", "email": "ana@example.com", "password": "123"},
+        json=registro_payload(password="123"),
     )
     assert response.status_code == 400
 
@@ -148,7 +159,12 @@ def test_register_password_corta(client):
 def test_login_exitoso(client):
     client.post(
         "/api/usuarios/autenticacion/registro",
-        json={"first_name": "Luis", "last_name": "Rojas", "email": "luis@example.com", "password": "ClaveSegura99*"},
+        json=registro_payload(
+            first_name="Luis",
+            last_name="Rojas",
+            email="luis@example.com",
+            password="ClaveSegura99*",
+        ),
     )
     response = client.post(
         "/api/usuarios/autenticacion/inicio-sesion",
@@ -171,7 +187,12 @@ def test_login_credenciales_incorrectas(client):
 def test_login_contrasena_incorrecta(client):
     client.post(
         "/api/usuarios/autenticacion/registro",
-        json={"first_name": "Luis", "last_name": "Rojas", "email": "luis@example.com", "password": "ClaveSegura99*"},
+        json=registro_payload(
+            first_name="Luis",
+            last_name="Rojas",
+            email="luis@example.com",
+            password="ClaveSegura99*",
+        ),
     )
     response = client.post(
         "/api/usuarios/autenticacion/inicio-sesion",
@@ -202,7 +223,12 @@ def test_login_usuario_inactivo(client):
 def test_logout_y_token_revocado(client):
     client.post(
         "/api/usuarios/autenticacion/registro",
-        json={"first_name": "Luis", "last_name": "Rojas", "email": "luis@example.com", "password": "ClaveSegura99*"},
+        json=registro_payload(
+            first_name="Luis",
+            last_name="Rojas",
+            email="luis@example.com",
+            password="ClaveSegura99*",
+        ),
     )
     login = client.post(
         "/api/usuarios/autenticacion/inicio-sesion",

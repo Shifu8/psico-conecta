@@ -18,6 +18,7 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     phone = db.Column(db.String(30), nullable=True)
+    birth_date = db.Column(db.Date, nullable=True)
     role_id = db.Column(
         db.Integer,
         db.ForeignKey(f"{_SCHEMA_PREFIX}roles.id"),
@@ -38,6 +39,7 @@ class User(db.Model):
             "full_name": f"{self.first_name} {self.last_name}",
             "email": self.email,
             "phone": self.phone,
+            "birth_date": self.birth_date.isoformat() if self.birth_date else None,
             "role": self.role.name,
             "status": self.status,
             "created_at": self.created_at.isoformat(),

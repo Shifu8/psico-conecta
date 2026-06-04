@@ -28,6 +28,7 @@ def register_user(data):
         email=email,
         password_hash=hash_password(data["password"]),
         phone=normalize_phone(data.get("phone")),
+        birth_date=data["birth_date"],
         role=role,
     )
     db.session.add(user)

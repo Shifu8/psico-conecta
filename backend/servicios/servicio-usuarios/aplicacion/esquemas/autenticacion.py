@@ -4,6 +4,7 @@ from aplicacion.utilidades.validacion import (
     normalize_email,
     normalize_phone,
     normalize_spaces,
+    validate_birth_date,
     validate_name,
     validate_password,
     validate_phone,
@@ -39,6 +40,7 @@ class RegisterSchema(AuthenticationSchema):
     email = fields.Email(required=True, validate=validate.Length(max=255))
     password = fields.String(required=True, load_only=True, validate=validate_password)
     phone = fields.String(load_default=None, allow_none=True, validate=validate_phone)
+    birth_date = fields.Date(required=True, validate=validate_birth_date)
     captcha_token = fields.String(
         load_default=None,
         allow_none=True,

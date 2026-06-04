@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS usuarios_schema.usuarios (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     phone VARCHAR(30),
+    birth_date DATE,
     role_id INTEGER NOT NULL REFERENCES usuarios_schema.roles(id),
     status VARCHAR(20) NOT NULL DEFAULT 'active',
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
