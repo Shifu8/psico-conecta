@@ -66,10 +66,14 @@ jobs:
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Sync Turnstile secret for usuarios
-        if: ${{ matrix.service.name == 'usuarios' && secrets.TURNSTILE_SECRET_KEY != '' }}
+        if: ${{ matrix.service.name == 'usuarios' }}
         env:
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
         run: |
+          if [ -z "$TURNSTILE_SECRET_KEY" ]; then
+            echo "TURNSTILE_SECRET_KEY is not configured; skipping Turnstile secret sync."
+            exit 0
+          fi
           if aws secretsmanager describe-secret --secret-id psicoconecta/TURNSTILE_SECRET_KEY --region $AWS_REGION >/dev/null 2>&1; then
             aws secretsmanager put-secret-value \
               --secret-id psicoconecta/TURNSTILE_SECRET_KEY \
