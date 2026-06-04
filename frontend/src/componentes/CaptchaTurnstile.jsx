@@ -10,17 +10,34 @@ const cargarTurnstile = () => {
   if (promesaTurnstile) return promesaTurnstile;
 
   promesaTurnstile = new Promise((resolve, reject) => {
-    window[CALLBACK_NAME] = () => resolve(window.turnstile);
+    window[CALLBACK_NAME] = () => {
+      resolve(window.turnstile);
+      delete window[CALLBACK_NAME];
+    };
 
     const existente = document.getElementById(SCRIPT_ID);
-    if (existente) return;
+    if (existente) {
+      existente.addEventListener("load", () => resolve(window.turnstile), { once: true });
+      existente.addEventListener(
+        "error",
+        () => {
+          promesaTurnstile = undefined;
+          reject(new Error("No se pudo cargar Turnstile."));
+        },
+        { once: true },
+      );
+      return;
+    }
 
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
     script.src = `https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=${CALLBACK_NAME}`;
     script.async = true;
     script.defer = true;
-    script.onerror = () => reject(new Error("No se pudo cargar Turnstile."));
+    script.onerror = () => {
+      promesaTurnstile = undefined;
+      reject(new Error("No se pudo cargar Turnstile."));
+    };
     document.head.appendChild(script);
   });
 
@@ -54,6 +71,10 @@ export default function CaptchaTurnstile({ onVerify, onExpire, resetKey }) {
           "error-callback": () => {
             onVerify("");
             setError("No se pudo completar la verificación de seguridad.");
+          },
+          "timeout-callback": () => {
+            onVerify("");
+            onExpire?.();
           },
         });
       })

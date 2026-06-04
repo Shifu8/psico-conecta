@@ -31,6 +31,7 @@ def app():
             "GOOGLE_CLIENT_SECRET": "",
             "GOOGLE_REFRESH_TOKEN": "",
             "GOOGLE_SENDER_EMAIL": "",
+            "TURNSTILE_SECRET_KEY": "",
         }
     )
     with application.app_context():

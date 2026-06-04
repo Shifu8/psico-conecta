@@ -42,7 +42,7 @@ class RegisterSchema(AuthenticationSchema):
     captcha_token = fields.String(
         load_default=None,
         allow_none=True,
-        validate=validate.Length(max=5000),
+        validate=validate.Length(max=2048),
     )
 
 
@@ -54,7 +54,7 @@ class LoginSchema(AuthenticationSchema):
     captcha_token = fields.String(
         load_default=None,
         allow_none=True,
-        validate=validate.Length(max=5000),
+        validate=validate.Length(max=2048),
     )
 
 
@@ -63,7 +63,7 @@ class ForgotPasswordSchema(AuthenticationSchema):
     captcha_token = fields.String(
         load_default=None,
         allow_none=True,
-        validate=validate.Length(max=5000),
+        validate=validate.Length(max=2048),
     )
 
 

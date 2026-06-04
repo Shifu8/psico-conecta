@@ -16,6 +16,8 @@ def verificar_captcha(token, ip_remota=None):
     secret = current_app.config.get("TURNSTILE_SECRET_KEY", "")
     if not secret:
         return
+    if isinstance(token, str):
+        token = token.strip()
     if not token:
         raise ValueError("Completa la verificación de seguridad.")
 
@@ -28,6 +30,8 @@ def verificar_captcha(token, ip_remota=None):
 
     data = urlencode(payload).encode("utf-8")
     request = Request(TURNSTILE_VERIFY_URL, data=data, method="POST")
+    request.add_header("Content-Type", "application/x-www-form-urlencoded")
+    request.add_header("Accept", "application/json")
     try:
         with urlopen(request, timeout=8) as response:
             resultado = json.loads(response.read().decode("utf-8"))

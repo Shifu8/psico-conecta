@@ -1,3 +1,21 @@
+import json
+from urllib.parse import parse_qs
+
+
+class RespuestaCaptcha:
+    def __init__(self, payload):
+        self.payload = payload
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def read(self):
+        return json.dumps(self.payload).encode("utf-8")
+
+
 def test_register_exitoso(client):
     response = client.post(
         "/api/usuarios/autenticacion/registro",
@@ -12,6 +30,82 @@ def test_register_exitoso(client):
     assert response.json["user"]["role"] == "PATIENT"
     assert response.json["user"]["email"] == "ana@example.com"
     assert "password_hash" not in response.json["user"]
+
+
+def test_register_requiere_captcha_si_configurado(client, app):
+    app.config["TURNSTILE_SECRET_KEY"] = "test-secret"
+
+    response = client.post(
+        "/api/usuarios/autenticacion/registro",
+        json={
+            "first_name": "Ana",
+            "last_name": "Perez",
+            "email": "ana@example.com",
+            "password": "Segura123*",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "seguridad" in response.json["message"]
+
+
+def test_register_valida_captcha_si_configurado(client, app, monkeypatch):
+    app.config["TURNSTILE_SECRET_KEY"] = "test-secret"
+    capturado = {}
+
+    def aceptar_captcha(request, timeout):
+        capturado["data"] = parse_qs(request.data.decode("utf-8"))
+        capturado["timeout"] = timeout
+        return RespuestaCaptcha({"success": True, "error-codes": []})
+
+    monkeypatch.setattr(
+        "aplicacion.servicios.servicio_captcha.urlopen",
+        aceptar_captcha,
+    )
+
+    response = client.post(
+        "/api/usuarios/autenticacion/registro",
+        json={
+            "first_name": "Ana",
+            "last_name": "Perez",
+            "email": "ana@example.com",
+            "password": "Segura123*",
+            "captcha_token": "token-ok",
+        },
+    )
+
+    assert response.status_code == 201
+    assert capturado["data"]["secret"] == ["test-secret"]
+    assert capturado["data"]["response"] == ["token-ok"]
+    assert capturado["timeout"] == 8
+
+
+def test_register_rechaza_captcha_invalido(client, app, monkeypatch):
+    app.config["TURNSTILE_SECRET_KEY"] = "test-secret"
+
+    def rechazar_captcha(*_args, **_kwargs):
+        return RespuestaCaptcha(
+            {"success": False, "error-codes": ["invalid-input-response"]}
+        )
+
+    monkeypatch.setattr(
+        "aplicacion.servicios.servicio_captcha.urlopen",
+        rechazar_captcha,
+    )
+
+    response = client.post(
+        "/api/usuarios/autenticacion/registro",
+        json={
+            "first_name": "Ana",
+            "last_name": "Perez",
+            "email": "ana@example.com",
+            "password": "Segura123*",
+            "captcha_token": "token-invalido",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "seguridad" in response.json["message"]
 
 
 def test_register_duplicado(client):
