@@ -17,13 +17,12 @@
         {"name": "FLASK_ENV", "value": "production"},
         {"name": "MODO_DESARROLLO", "value": "false"},
         {"name": "DATABASE_URL", "value": "sqlite:////tmp/datos.db"},
-        {"name": "FRONTEND_URL", "value": "https://d1wkhs3cq8vcom.cloudfront.net"},
-        {"name": "CORS_ORIGINS", "value": "https://d1wkhs3cq8vcom.cloudfront.net,http://psicoconecta-frontend-060899556466.s3-website.us-east-2.amazonaws.com"},
+        {"name": "FRONTEND_URL", "value": "https://psico-conecta.brandon-medina.workers.dev"},
+        {"name": "CORS_ORIGINS", "value": "https://psico-conecta.brandon-medina.workers.dev,https://d1wkhs3cq8vcom.cloudfront.net,http://psicoconecta-frontend-060899556466.s3-website.us-east-2.amazonaws.com"},
         {"name": "COGNITO_ENABLED", "value": "false"},
         {"name": "GOOGLE_LOGIN_CLIENT_ID", "value": "339658076678-kah0e205d5asf6ufnlh009lh5i4g8u70.apps.googleusercontent.com"},
         {"name": "AWS_REGION", "value": "us-east-2"},
-        {"name": "DATABASE_SCHEMA", "value": ""},
-        {"name": "TURNSTILE_SECRET_KEY", "value": ""}
+        {"name": "DATABASE_SCHEMA", "value": ""}
       ],
       "secrets": [
         {"name": "SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/SECRET_KEY"},
@@ -31,7 +30,8 @@
         {"name": "GOOGLE_CLIENT_ID", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/GOOGLE_CLIENT_ID"},
         {"name": "GOOGLE_CLIENT_SECRET", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/GOOGLE_CLIENT_SECRET"},
         {"name": "GOOGLE_REFRESH_TOKEN", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/GOOGLE_REFRESH_TOKEN"},
-        {"name": "GOOGLE_SENDER_EMAIL", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/GOOGLE_SENDER_EMAIL"}
+        {"name": "GOOGLE_SENDER_EMAIL", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/GOOGLE_SENDER_EMAIL"},
+        {"name": "TURNSTILE_SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/TURNSTILE_SECRET_KEY"}
       ],
       "logConfiguration": {
         "logDriver": "awslogs",

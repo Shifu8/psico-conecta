@@ -58,7 +58,8 @@ $requeridos = @(
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
     "GOOGLE_REFRESH_TOKEN",
-    "GOOGLE_SENDER_EMAIL"
+    "GOOGLE_SENDER_EMAIL",
+    "TURNSTILE_SECRET_KEY"
 )
 
 foreach ($clave in $requeridos) {
@@ -66,4 +67,4 @@ foreach ($clave in $requeridos) {
 }
 
 Write-Host ""
-Write-Host "Secretos de Gmail listos para ECS." -ForegroundColor Cyan
+Write-Host "Secretos de usuarios listos para ECS." -ForegroundColor Cyan

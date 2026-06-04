@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { TURNSTILE_SITE_KEY } from "../servicios/configuracionFrontend";
 
 const SCRIPT_ID = "psicoconecta-turnstile";
 const CALLBACK_NAME = "__psicoconectaTurnstileReady";
@@ -45,7 +46,7 @@ const cargarTurnstile = () => {
 };
 
 export default function CaptchaTurnstile({ onVerify, onExpire, resetKey }) {
-  const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim();
+  const siteKey = TURNSTILE_SITE_KEY;
   const contenedorRef = useRef(null);
   const widgetRef = useRef(null);
   const [error, setError] = useState("");

@@ -6,6 +6,7 @@ import CaptchaTurnstile from "../../componentes/CaptchaTurnstile";
 import CampoFormulario from "../../componentes/CampoFormulario";
 import RequisitosContrasena from "../../componentes/RequisitosContrasena";
 import { usarAutenticacion } from "../../contexto/ContextoAutenticacion";
+import { GOOGLE_CLIENT_ID, TURNSTILE_SITE_KEY } from "../../servicios/configuracionFrontend";
 import { rutaInicialPorRol } from "../../servicios/servicioAutenticacion";
 import {
   AYUDA_CONTRASENA,
@@ -38,8 +39,8 @@ const validarFormulario = (formulario) => ({
 });
 
 export default function Registro() {
-  const googleHabilitado = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim());
-  const captchaHabilitado = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim());
+  const googleHabilitado = Boolean(GOOGLE_CLIENT_ID);
+  const captchaHabilitado = Boolean(TURNSTILE_SITE_KEY);
   const [formulario, setFormulario] = useState(inicial);
   const [error, setError] = useState("");
   const [erroresServidor, setErroresServidor] = useState({});

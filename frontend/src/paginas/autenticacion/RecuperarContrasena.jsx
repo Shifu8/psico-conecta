@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import CaptchaTurnstile from "../../componentes/CaptchaTurnstile";
 import CampoFormulario from "../../componentes/CampoFormulario";
+import { TURNSTILE_SITE_KEY } from "../../servicios/configuracionFrontend";
 import { solicitarRecuperacion } from "../../servicios/servicioAutenticacion";
 import {
   normalizarCorreo,
@@ -11,7 +12,7 @@ import {
 } from "../../utilidades/validacion";
 
 export default function RecuperarContrasena() {
-  const captchaHabilitado = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim());
+  const captchaHabilitado = Boolean(TURNSTILE_SITE_KEY);
   const [email, setEmail] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");

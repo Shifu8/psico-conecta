@@ -65,6 +65,23 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
+      - name: Sync Turnstile secret for usuarios
+        if: ${{ matrix.service.name == 'usuarios' && secrets.TURNSTILE_SECRET_KEY != '' }}
+        env:
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+        run: |
+          if aws secretsmanager describe-secret --secret-id psicoconecta/TURNSTILE_SECRET_KEY --region $AWS_REGION >/dev/null 2>&1; then
+            aws secretsmanager put-secret-value \
+              --secret-id psicoconecta/TURNSTILE_SECRET_KEY \
+              --secret-string "$TURNSTILE_SECRET_KEY" \
+              --region $AWS_REGION >/dev/null
+          else
+            aws secretsmanager create-secret \
+              --name psicoconecta/TURNSTILE_SECRET_KEY \
+              --secret-string "$TURNSTILE_SECRET_KEY" \
+              --region $AWS_REGION >/dev/null
+          fi
+
       - name: Update ECS service (if task definition exists)
         if: ${{ matrix.service.task-def != '' }}
         env:

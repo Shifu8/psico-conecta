@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import CaptchaTurnstile from "../../componentes/CaptchaTurnstile";
 import CampoFormulario from "../../componentes/CampoFormulario";
 import { usarAutenticacion } from "../../contexto/ContextoAutenticacion";
+import { GOOGLE_CLIENT_ID, TURNSTILE_SITE_KEY } from "../../servicios/configuracionFrontend";
 import { rutaInicialPorRol } from "../../servicios/servicioAutenticacion";
 import {
   normalizarCorreo,
@@ -19,8 +20,8 @@ const validarFormulario = (formulario) => ({
 });
 
 export default function InicioSesion() {
-  const googleHabilitado = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim());
-  const captchaHabilitado = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim());
+  const googleHabilitado = Boolean(GOOGLE_CLIENT_ID);
+  const captchaHabilitado = Boolean(TURNSTILE_SITE_KEY);
   const [formulario, setFormulario] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [tocados, setTocados] = useState({});
