@@ -1,6 +1,6 @@
 ﻿import os
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from marshmallow import ValidationError
 from werkzeug.exceptions import HTTPException
 
@@ -26,6 +26,19 @@ def create_app(test_config=None):
     jwt.init_app(app)
     bcrypt.init_app(app)
     cors.init_app(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
+
+    @app.after_request
+    def asegurar_cors_api(response):
+        if request.path.startswith("/api/"):
+            if "Access-Control-Allow-Origin" not in response.headers:
+                response.headers["Access-Control-Allow-Origin"] = "*"
+            if "Access-Control-Allow-Headers" not in response.headers:
+                response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
+            if "Access-Control-Allow-Methods" not in response.headers:
+                response.headers["Access-Control-Allow-Methods"] = (
+                    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+                )
+        return response
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(users_bp)
