@@ -1,5 +1,5 @@
 import { GoogleLogin } from "@react-oauth/google";
-import { UserPlus } from "lucide-react";
+import { Eye, EyeOff, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import CaptchaTurnstile from "../../componentes/CaptchaTurnstile";
@@ -53,6 +53,7 @@ export default function Registro() {
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [googleError, setGoogleError] = useState("");
+  const [mostrarPassword, setMostrarPassword] = useState(false);
   const { googleLogin, registrar } = usarAutenticacion();
   const navegar = useNavigate();
 
@@ -203,7 +204,7 @@ export default function Registro() {
           className="sm:col-span-2"
           etiqueta="Contraseña"
           name="password"
-          type="password"
+          type={mostrarPassword ? "text" : "password"}
           value={formulario.password}
           onChange={actualizar}
           error={errorCampo("password")}
@@ -211,6 +212,16 @@ export default function Registro() {
           ayuda={AYUDA_CONTRASENA}
           minLength={8}
           maxLength={15}
+          accionDerecha={
+            <button
+              type="button"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+              aria-label={mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              onClick={() => setMostrarPassword((actual) => !actual)}
+            >
+              {mostrarPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          }
           required
         />
         <div className="sm:col-span-2">

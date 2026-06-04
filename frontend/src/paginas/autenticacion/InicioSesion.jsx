@@ -1,5 +1,5 @@
 import { GoogleLogin } from "@react-oauth/google";
-import { LogIn } from "lucide-react";
+import { Eye, EyeOff, LogIn } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import CaptchaTurnstile from "../../componentes/CaptchaTurnstile";
@@ -29,6 +29,7 @@ export default function InicioSesion() {
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [googleError, setGoogleError] = useState("");
+  const [mostrarPassword, setMostrarPassword] = useState(false);
   const { entrar, googleLogin } = usarAutenticacion();
   const navegar = useNavigate();
   const ubicacion = useLocation();
@@ -130,12 +131,22 @@ export default function InicioSesion() {
         <CampoFormulario
           etiqueta="Contraseña"
           name="password"
-          type="password"
+          type={mostrarPassword ? "text" : "password"}
           value={formulario.password}
           onChange={actualizar}
           error={tocados.password ? erroresFormulario.password : ""}
           autoComplete="current-password"
           maxLength={15}
+          accionDerecha={
+            <button
+              type="button"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+              aria-label={mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              onClick={() => setMostrarPassword((actual) => !actual)}
+            >
+              {mostrarPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          }
           required
         />
         {captchaHabilitado && (
