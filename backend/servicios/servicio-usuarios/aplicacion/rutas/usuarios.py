@@ -1,4 +1,4 @@
-﻿from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 
 from aplicacion.extensiones import db
@@ -16,6 +16,14 @@ users_bp = Blueprint("usuarios", __name__, url_prefix="/api/usuarios")
 def list_users():
     users = User.query.order_by(User.created_at.desc()).all()
     return jsonify(users=[user.to_dict() for user in users])
+
+@users_bp.get("/psicologos")
+@jwt_required()
+def list_psychologists():
+    # Retorna solo los usuarios activos que tienen el rol de psicólogo
+    users = User.query.filter_by(status="active").all()
+    psicologos = [u.to_dict() for u in users if u.role and u.role.name == "PSYCHOLOGIST"]
+    return jsonify(psicologos=psicologos)
 
 
 @users_bp.get("/<int:user_id>")

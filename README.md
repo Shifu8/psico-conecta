@@ -190,6 +190,7 @@ flask --app ejecutar.py db upgrade
 | --- | --- | --- |
 | ADMIN | `admin@psicoconecta.com` | `Admin123*` |
 | PSYCHOLOGIST | `psicologo@psicoconecta.com` | `Psicologo123*` |
+| PSYCHOLOGIST | `laura@psicoconecta.com` | `Psicologo123*` |
 | PATIENT | `paciente@psicoconecta.com` | `Paciente123*` |
 
 Estas cuentas existen únicamente para desarrollo local.

@@ -1,4 +1,4 @@
-import { LayoutDashboard, LifeBuoy, LogOut, UserRound } from "lucide-react";
+import { LayoutDashboard, LifeBuoy, LogOut, UserRound, CalendarDays, Clock3 } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import BotonTema from "../componentes/BotonTema";
 import Logo from "../componentes/Logo";
@@ -44,6 +44,16 @@ export default function PlantillaPanel() {
             <LayoutDashboard size={18} />
             Resumen
           </NavLink>
+          <NavLink to="/citas" className={claseEnlace}>
+            <CalendarDays size={18} />
+            Citas
+          </NavLink>
+          {usuario.role === "PSYCHOLOGIST" && (
+            <NavLink to="/psicologo/disponibilidad" className={claseEnlace}>
+              <Clock3 size={18} />
+              Disponibilidad
+            </NavLink>
+          )}
           <NavLink to="/perfil" className={claseEnlace}>
             <UserRound size={18} />
             Mi perfil

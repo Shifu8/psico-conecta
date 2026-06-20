@@ -13,6 +13,12 @@ import PanelPsicologo from "../paginas/paneles/PanelPsicologo";
 import PlantillaAutenticacion from "../plantillas/PlantillaAutenticacion";
 import PlantillaPanel from "../plantillas/PlantillaPanel";
 
+// Citas
+import PaginaCitas from "../paginas/citas/PaginaCitas";
+import PaginaAgendarCita from "../paginas/citas/PaginaAgendarCita";
+import PaginaDetalleCita from "../paginas/citas/PaginaDetalleCita";
+import GestorDisponibilidad from "../componentes/citas/GestorDisponibilidad";
+
 export default function RutasAplicacion() {
   return (
     <Routes>
@@ -27,14 +33,20 @@ export default function RutasAplicacion() {
       <Route element={<RutaPrivada />}>
         <Route element={<PlantillaPanel />}>
           <Route path="/perfil" element={<Perfil />} />
+          
+          <Route path="/citas" element={<PaginaCitas />} />
+          <Route path="/citas/:id" element={<PaginaDetalleCita />} />
+
           <Route element={<RutaRol roles={["ADMIN"]} />}>
             <Route path="/administrador" element={<PanelAdministrador />} />
           </Route>
           <Route element={<RutaRol roles={["PSYCHOLOGIST"]} />}>
             <Route path="/psicologo" element={<PanelPsicologo />} />
+            <Route path="/psicologo/disponibilidad" element={<GestorDisponibilidad />} />
           </Route>
           <Route element={<RutaRol roles={["PATIENT"]} />}>
             <Route path="/paciente" element={<PanelPaciente />} />
+            <Route path="/citas/agendar" element={<PaginaAgendarCita />} />
           </Route>
         </Route>
       </Route>
