@@ -32,6 +32,7 @@ class User(db.Model):
     role = db.relationship("Role", backref=db.backref("users", lazy=True))
 
     def to_dict(self):
+        version_foto = int(self.updated_at.timestamp()) if self.updated_at else 0
         return {
             "id": self.id,
             "first_name": self.first_name,
@@ -40,6 +41,7 @@ class User(db.Model):
             "email": self.email,
             "phone": self.phone,
             "birth_date": self.birth_date.isoformat() if self.birth_date else None,
+            "profile_photo_url": f"/api/usuarios/{self.id}/foto-perfil?v={version_foto}",
             "role": self.role.name,
             "status": self.status,
             "created_at": self.created_at.isoformat(),

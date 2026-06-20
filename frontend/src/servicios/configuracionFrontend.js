@@ -5,11 +5,23 @@ const TURNSTILE_SITE_KEY_PRODUCCION = "0x4AAAAAADeaQizjXYRnGG6E";
 
 const valorEntorno = (nombre) => import.meta.env[nombre]?.trim();
 const captchaDesactivado = valorEntorno("VITE_CAPTCHA_DESACTIVADO") === "true";
+const urlServicioLocal = (puerto) => `http://127.0.0.1:${puerto}`;
+const urlServicio = (variable, puerto) =>
+  valorEntorno(variable) || (import.meta.env.PROD ? API_PRODUCCION : urlServicioLocal(puerto));
 
 export const API_BASE_URL =
   valorEntorno("VITE_API_URL") ||
   valorEntorno("VITE_USERS_API_URL") ||
-  (import.meta.env.PROD ? API_PRODUCCION : "http://127.0.0.1:5001");
+  (import.meta.env.PROD ? API_PRODUCCION : urlServicioLocal(5001));
+
+export const URLS_SERVICIOS = {
+  usuarios: API_BASE_URL,
+  citas: urlServicio("VITE_CITAS_API_URL", 5002),
+  teleconsulta: urlServicio("VITE_TELECONSULTA_API_URL", 5003),
+  pagos: urlServicio("VITE_PAGOS_API_URL", 5004),
+  iot: urlServicio("VITE_IOT_API_URL", 5005),
+  gateway: urlServicio("VITE_GATEWAY_API_URL", 5000),
+};
 
 export const GOOGLE_CLIENT_ID =
   valorEntorno("VITE_GOOGLE_CLIENT_ID") ||
