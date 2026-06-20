@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
-export default function TarjetaModuloPanel({ icono: Icono, titulo, texto, detalle }) {
-  return (
+export default function TarjetaModuloPanel({ icono: Icono, titulo, texto, detalle, ruta }) {
+  const content = (
     <motion.article
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
@@ -12,7 +13,7 @@ export default function TarjetaModuloPanel({ icono: Icono, titulo, texto, detall
         <span className="icono-panel transition duration-300 group-hover:bg-blue-600 group-hover:text-white">
           <Icono size={22} />
         </span>
-        <ArrowUpRight size={18} className="text-slate-300 transition group-hover:text-blue-600 dark:text-slate-600 dark:group-hover:text-blue-300" />
+        {ruta && <ArrowUpRight size={18} className="text-slate-300 transition group-hover:text-blue-600 dark:text-slate-600 dark:group-hover:text-blue-300" />}
       </div>
       <h2 className="mt-6 text-lg font-black text-slate-900 dark:text-white">{titulo}</h2>
       <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-300">{texto}</p>
@@ -23,4 +24,9 @@ export default function TarjetaModuloPanel({ icono: Icono, titulo, texto, detall
       )}
     </motion.article>
   );
+
+  if (ruta) {
+    return <Link to={ruta} className="block h-full">{content}</Link>;
+  }
+  return content;
 }

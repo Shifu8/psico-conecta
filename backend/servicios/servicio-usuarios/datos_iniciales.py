@@ -1,4 +1,4 @@
-﻿from aplicacion import create_app
+from aplicacion import create_app
 from aplicacion.extensiones import db
 from aplicacion.modelos import Permission, Role, User
 from aplicacion.utilidades.seguridad import hash_password
@@ -36,6 +36,13 @@ DEMO_USERS = [
         "Psicologo",
         "Demo",
         "psicologo@psicoconecta.com",
+        "Psicologo123*",
+        "PSYCHOLOGIST",
+    ),
+    (
+        "Laura",
+        "Gómez",
+        "laura@psicoconecta.com",
         "Psicologo123*",
         "PSYCHOLOGIST",
     ),

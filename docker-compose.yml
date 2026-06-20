@@ -57,10 +57,13 @@ services:
     volumes:
       - ./backend/servicios/servicio-citas:/app:ro
     env_file:
+      - ./backend/servicios/servicio-citas/.env.example
       - ./.env.example
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/psicoconecta
-    command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
+      DB_SCHEMA: citas_schema
+      USERS_SERVICE_URL: http://servicio-usuarios:5001
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python datos_iniciales.py && python ejecutar.py"
     ports:
       - "5002:5002"
     depends_on:

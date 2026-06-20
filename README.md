@@ -288,6 +288,173 @@ psico-conecta/
 `-- README.md
 ```
 
+
+## Inicio rápido local
+
+### Sin Docker
+
+En una terminal:
+
+```powershell
+.\scripts\local-backend.ps1
+```
+
+Si SQLite local quedó a medias por un error anterior, reinícialo con:
+
+```powershell
+.\scripts\local-backend.ps1 -Reset
+```
+
+En otra terminal:
+
+```powershell
+.\scripts\local-frontend.ps1
+```
+
+Abrir `http://localhost:5173`.
+
+### Opción recomendada: Docker + Vite
+
+Levanta PostgreSQL y el servicio de usuarios. Docker ejecuta el seed antes de
+iniciar Flask, por lo que las credenciales demo quedan listas.
+
+```powershell
+docker compose up servicio-usuarios
+```
+
+En otra terminal:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Abrir `http://localhost:5173`.
+
+El frontend local usa `frontend/.env.development`, que apunta a
+`http://127.0.0.1:5001`. La build de producción en GitHub obtiene el DNS del
+ALB `psicoconecta-alb` y usa ese valor como `VITE_API_URL`.
+
+### Opción manual: PostgreSQL + Flask
+
+La demostración local requiere PostgreSQL. Copia `backend/servicios/servicio-usuarios/.env.example` a `.env` antes de iniciar el servicio.
+
+```powershell
+cd backend\servicios\servicio-usuarios
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python datos_iniciales.py
+python ejecutar.py
+```
+
+### 2. Frontend
+
+En otra terminal:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Abrir `http://localhost:5173`.
+
+### 3. PostgreSQL con Docker
+
+Para trabajar con PostgreSQL:
+
+```powershell
+docker compose up -d postgres
+```
+
+Docker crea automáticamente la base `psicoconecta` y sus cuatro esquemas. Para
+incluir pgAdmin:
+
+```powershell
+docker compose --profile tools up -d
+```
+
+Copiar `backend\servicios\servicio-usuarios\.env.example` como `.env` antes de
+iniciar Flask con PostgreSQL.
+
+## Migraciones
+
+Desde `backend\servicios\servicio-usuarios`:
+
+```powershell
+flask --app ejecutar.py db init
+flask --app ejecutar.py db migrate -m "esquema inicial de usuarios"
+flask --app ejecutar.py db upgrade
+```
+
+## Credenciales de demostración
+
+| Rol | Correo | Contraseña |
+| --- | --- | --- |
+| ADMIN | `admin@psicoconecta.com` | `Admin123*` |
+| PSYCHOLOGIST | `psicologo@psicoconecta.com` | `Psicologo123*` |
+| PSYCHOLOGIST | `laura@psicoconecta.com` | `Psicologo123*` |
+| PATIENT | `paciente@psicoconecta.com` | `Paciente123*` |
+
+Estas cuentas existen únicamente para desarrollo local.
+
+## Recuperación con Gmail API
+
+El servicio genera un token temporal seguro, guarda su hash con expiración de
+30 minutos y envía un enlace mediante Gmail API. No usa SMTP. En modo local,
+sin credenciales, el endpoint devuelve el token para permitir la demostración.
+
+Variables requeridas:
+
+```env
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REFRESH_TOKEN=
+GOOGLE_SENDER_EMAIL=
+FRONTEND_URL=http://localhost:5173
+```
+
+## Inicio de sesión con Google (directo)
+
+El flujo es:
+
+```text
+@react-oauth/google (frontend) -> token ID -> Flask (verificación) -> PostgreSQL
+```
+
+El frontend usa `@react-oauth/google` y el backend verifica el token ID
+contra Google mediante `google-auth` y el endpoint `tokeninfo`.
+
+Variables requeridas:
+
+```env
+GOOGLE_LOGIN_CLIENT_ID=<web-client-id>
+VITE_GOOGLE_CLIENT_ID=<mismo-client-id>
+```
+
+## Producción HTTPS, Gmail y CAPTCHA
+
+Para producción, el frontend debe usar CloudFront como origen seguro:
+
+```env
+VITE_API_URL=https://d1wkhs3cq8vcom.cloudfront.net
+FRONTEND_URL=https://d1wkhs3cq8vcom.cloudfront.net
+CORS_ORIGINS=https://d1wkhs3cq8vcom.cloudfront.net,http://psicoconecta-frontend-060899556466.s3-website.us-east-2.amazonaws.com
+```
+
+La recuperación de contraseña necesita que ECS reciba `GOOGLE_CLIENT_ID`,
+`GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN` y `GOOGLE_SENDER_EMAIL` desde
+Secrets Manager. El script `infraestructura/aws/actualizar-secretos-usuarios.ps1`
+lee esos valores desde `backend/servicios/servicio-usuarios/.env` y los actualiza
+en AWS.
+
+CAPTCHA usa Cloudflare Turnstile de forma opcional. Si configuras
+`VITE_TURNSTILE_SITE_KEY` en el frontend y `TURNSTILE_SECRET_KEY` en el backend,
+los formularios de registro, inicio de sesión y recuperación validan el desafío.
+
+
 ## Endpoints principales
 
 Autenticacion:
