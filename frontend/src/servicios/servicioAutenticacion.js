@@ -1,4 +1,5 @@
 import api from "./api";
+import { API_BASE_URL } from "./configuracionFrontend";
 
 const BASE = "/api/usuarios/autenticacion";
 
@@ -19,6 +20,27 @@ export const restablecerContrasena = (datos) =>
   api.post(`${BASE}/restablecer-contrasena`, datos);
 
 export const obtenerMiPerfil = () => api.get(`${BASE}/mi-perfil`);
+
+export const actualizarPerfil = (userId, datos) =>
+  api.put(`/api/usuarios/${userId}`, datos);
+
+export const subirFotoPerfil = (userId, archivo) => {
+  const datos = new FormData();
+  datos.append("foto", archivo);
+  return api.post(`/api/usuarios/${userId}/foto-perfil`, datos, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
+export const eliminarFotoPerfil = (userId) =>
+  api.delete(`/api/usuarios/${userId}/foto-perfil`);
+
+export const resolverUrlFotoPerfil = (usuario) => {
+  const url = usuario?.profile_photo_url;
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${API_BASE_URL}${url.startsWith("/") ? url : `/${url}`}`;
+};
 
 export const googleLoginRequest = (credential) =>
   api.post(`${BASE}/google`, { credential });

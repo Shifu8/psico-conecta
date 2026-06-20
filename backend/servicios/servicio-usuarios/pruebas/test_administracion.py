@@ -1,3 +1,5 @@
+from io import BytesIO
+
 def test_admin_lista_usuarios(client, admin_headers):
     response = client.get("/api/usuarios", headers=admin_headers)
     assert response.status_code == 200
@@ -99,3 +101,28 @@ def test_psicologo_panel(client):
     response = client.get("/api/usuarios/psicologo/panel", headers=headers)
     assert response.status_code == 200
     assert response.json["role"] == "PSYCHOLOGIST"
+
+
+def test_usuario_puede_subir_foto_perfil(client):
+    login = client.post(
+        "/api/usuarios/autenticacion/inicio-sesion",
+        json={"email": "paciente@psicoconecta.com", "password": "Paciente123*"},
+    )
+    user_id = login.json["user"]["id"]
+    headers = {"Authorization": f"Bearer {login.json['access_token']}"}
+    png_minimo = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+
+    response = client.post(
+        f"/api/usuarios/{user_id}/foto-perfil",
+        data={"foto": (BytesIO(png_minimo), "perfil.png")},
+        headers=headers,
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 200
+    assert response.json["user"]["profile_photo_url"].startswith(
+        f"/api/usuarios/{user_id}/foto-perfil"
+    )
+    foto = client.get(f"/api/usuarios/{user_id}/foto-perfil")
+    assert foto.status_code == 200
+    assert foto.content_type.startswith("image/png")
