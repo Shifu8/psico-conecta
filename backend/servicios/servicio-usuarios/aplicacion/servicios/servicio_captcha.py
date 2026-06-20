@@ -9,10 +9,14 @@ TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverif
 
 
 def captcha_configurado():
+    if current_app.config.get("CAPTCHA_DESACTIVADO"):
+        return False
     return bool(current_app.config.get("TURNSTILE_SECRET_KEY"))
 
 
 def verificar_captcha(token, ip_remota=None):
+    if current_app.config.get("CAPTCHA_DESACTIVADO"):
+        return
     secret = current_app.config.get("TURNSTILE_SECRET_KEY", "")
     if not secret:
         return

@@ -5,7 +5,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $serviceDir = Join-Path $repoRoot "backend\servicios\servicio-usuarios"
 $venvPython = Join-Path $serviceDir "venv\Scripts\python.exe"
-$localDb = Join-Path $serviceDir "datos_local.db"
+$localDb = Join-Path $serviceDir "instance\datos_local.db"
 
 Set-Location $serviceDir
 

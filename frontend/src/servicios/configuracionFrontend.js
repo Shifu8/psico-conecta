@@ -4,6 +4,7 @@ const GOOGLE_CLIENT_ID_PRODUCCION =
 const TURNSTILE_SITE_KEY_PRODUCCION = "0x4AAAAAADeaQizjXYRnGG6E";
 
 const valorEntorno = (nombre) => import.meta.env[nombre]?.trim();
+const captchaDesactivado = valorEntorno("VITE_CAPTCHA_DESACTIVADO") === "true";
 
 export const API_BASE_URL =
   valorEntorno("VITE_API_URL") ||
@@ -15,5 +16,7 @@ export const GOOGLE_CLIENT_ID =
   (import.meta.env.PROD ? GOOGLE_CLIENT_ID_PRODUCCION : "");
 
 export const TURNSTILE_SITE_KEY =
-  valorEntorno("VITE_TURNSTILE_SITE_KEY") ||
-  (import.meta.env.PROD ? TURNSTILE_SITE_KEY_PRODUCCION : "");
+  captchaDesactivado
+    ? ""
+    : valorEntorno("VITE_TURNSTILE_SITE_KEY") ||
+      (import.meta.env.PROD ? TURNSTILE_SITE_KEY_PRODUCCION : "");
