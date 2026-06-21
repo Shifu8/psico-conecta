@@ -58,6 +58,10 @@ def create_app(test_config=None):
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(audit_bp)
 
+    if app.config["MODO_DESARROLLO"] and app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
+        with app.app_context():
+            db.create_all()
+
     @app.get("/health")
     def health():
         return jsonify(estado="ok", servicio="servicio-usuarios")
