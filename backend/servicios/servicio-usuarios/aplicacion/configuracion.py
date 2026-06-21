@@ -2,11 +2,43 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+REPO_DIR = BASE_DIR.parents[2]
+ENV_FILES = (
+    BASE_DIR / ".env",
+    REPO_DIR / ".env",
+    REPO_DIR / "frontend" / ".env.development.local",
+    REPO_DIR / "frontend" / ".env.development",
+    REPO_DIR / "frontend" / ".env.local",
+    REPO_DIR / "frontend" / ".env",
+)
+GOOGLE_LOGIN_CLIENT_ID_PRODUCCION = (
+    "339658076678-kah0e205d5asf6ufnlh009lh5i4g8u70.apps.googleusercontent.com"
+)
 load_dotenv(BASE_DIR / ".env")
+
+
+DOTENV_VALUES = {
+    env_file: dotenv_values(env_file)
+    for env_file in ENV_FILES
+    if env_file.exists()
+}
+
+
+def env_value(*names, default=""):
+    for name in names:
+        value = os.getenv(name)
+        if value and value.strip():
+            return value.strip()
+    for name in names:
+        for values in DOTENV_VALUES.values():
+            value = values.get(name)
+            if value and value.strip():
+                return value.strip()
+    return default
 
 
 class Config:
@@ -36,8 +68,10 @@ class Config:
     COGNITO_GOOGLE_REDIRECT_URI = os.getenv(
         "COGNITO_GOOGLE_REDIRECT_URI", "http://localhost:5173/iniciar-sesion"
     )
-    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
-    GOOGLE_LOGIN_CLIENT_ID = os.getenv("GOOGLE_LOGIN_CLIENT_ID", "")
+    GOOGLE_CLIENT_ID = env_value("GOOGLE_CLIENT_ID")
+    GOOGLE_LOGIN_CLIENT_ID = env_value("GOOGLE_LOGIN_CLIENT_ID", "VITE_GOOGLE_CLIENT_ID")
+    if not GOOGLE_LOGIN_CLIENT_ID and not MODO_DESARROLLO:
+        GOOGLE_LOGIN_CLIENT_ID = GOOGLE_LOGIN_CLIENT_ID_PRODUCCION
     GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
     GOOGLE_REFRESH_TOKEN = os.getenv("GOOGLE_REFRESH_TOKEN", "")
     GOOGLE_SENDER_EMAIL = os.getenv("GOOGLE_SENDER_EMAIL", "")

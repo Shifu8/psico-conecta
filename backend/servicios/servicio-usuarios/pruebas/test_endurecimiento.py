@@ -138,6 +138,7 @@ def test_google_login_exitoso_no_expone_identificadores(client, app, monkeypatch
         "aplicacion.servicios.servicio_google_login.id_token.verify_oauth2_token",
         lambda *_args, **_kwargs: {
             "iss": "https://accounts.google.com",
+            "aud": "web-client-id.apps.googleusercontent.com",
             "email": "google@example.com",
             "email_verified": True,
             "sub": "google-sub-id",
@@ -160,6 +161,7 @@ def test_google_login_rechaza_correo_no_verificado(client, app, monkeypatch):
         "aplicacion.servicios.servicio_google_login.id_token.verify_oauth2_token",
         lambda *_args, **_kwargs: {
             "iss": "https://accounts.google.com",
+            "aud": "web-client-id.apps.googleusercontent.com",
             "email": "google@example.com",
             "email_verified": False,
             "sub": "google-sub-id",
