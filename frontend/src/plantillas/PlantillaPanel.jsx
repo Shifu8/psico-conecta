@@ -80,8 +80,8 @@ export default function PlantillaPanel() {
       </aside>
 
       <main className="min-w-0">
-        <header className="flex items-center justify-between border-b border-slate-200 bg-white/75 px-5 py-4 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/70 sm:px-8">
-          <div className="flex min-w-0 items-center gap-3">
+        <header className="flex items-center justify-end border-b border-slate-200 bg-white/75 px-5 py-4 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/70 sm:px-8">
+          <div className="mr-auto flex min-w-0 items-center gap-3 lg:hidden">
             <AvatarUsuario usuario={usuario} tamano="sm" className="rounded-xl" />
             <div className="min-w-0">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300">
