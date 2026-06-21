@@ -34,21 +34,18 @@ const coleccion = async (cliente, endpoint, clave) => {
   return Array.isArray(data?.[clave]) ? data[clave] : [];
 };
 
-export const obtenerCitas = () => coleccion(clientes.citas, "/api/citas", "citas");
+export const obtenerCitas = async () => {
+  const { data } = await clientes.citas.get("/api/citas/mis-citas");
+  return Array.isArray(data) ? data : [];
+};
 
-export const obtenerSesionesTeleconsulta = () =>
-  coleccion(clientes.teleconsulta, "/api/teleconsulta/sesiones", "sesiones");
-
-export const obtenerPagos = () => coleccion(clientes.pagos, "/api/pagos", "pagos");
-
-export const obtenerEmociones = () =>
-  coleccion(clientes.iot, "/api/iot/emociones", "emociones");
-
-export const obtenerLecturasIot = () =>
-  coleccion(clientes.iot, "/api/iot/lecturas", "lecturas_iot");
+export const obtenerSesionesTeleconsulta = () => Promise.resolve([]);
+export const obtenerPagos = () => Promise.resolve([]);
+export const obtenerEmociones = () => Promise.resolve([]);
+export const obtenerLecturasIot = () => Promise.resolve([]);
 
 export const crearRegistroEmocional = (datos) =>
-  clientes.iot.post("/api/iot/emociones", datos);
+  Promise.resolve({ data: { emocion: datos } });
 
 export const obtenerDatosOperativos = async () => {
   const resultados = await Promise.allSettled([

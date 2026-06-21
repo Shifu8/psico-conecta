@@ -26,17 +26,26 @@ def seed_database():
 
     # Verificar si ya hay disponibilidad
     if not Disponibilidad.query.filter_by(psicologo_id=psicologo_id).first():
-        # Lunes a Viernes de 09:00 a 17:00
+        # Lunes a Viernes: bloque mañana 08:00-12:00 y bloque tarde 14:00-17:00
         for dia in range(5):
+            # Bloque mañana
             db.session.add(Disponibilidad(
                 psicologo_id=psicologo_id,
                 dia_semana=dia,
-                hora_inicio=time(9, 0),
+                hora_inicio=time(8, 0),
+                hora_fin=time(12, 0),
+                duracion_slot=60
+            ))
+            # Bloque tarde
+            db.session.add(Disponibilidad(
+                psicologo_id=psicologo_id,
+                dia_semana=dia,
+                hora_inicio=time(14, 0),
                 hora_fin=time(17, 0),
-                duracion_slot=50
+                duracion_slot=60
             ))
         db.session.commit()
-        print("Disponibilidad demo creada.")
+        print("Disponibilidad demo creada (L-V, 08-12 y 14-17, slots de 60 min).")
 
     # Verificar si ya hay citas
     if not Cita.query.filter_by(psicologo_id=psicologo_id).first():
@@ -46,7 +55,7 @@ def seed_database():
             manana = manana + timedelta(days=7 - manana.weekday())
             
         hora_cita_inicio = manana.replace(hour=10, minute=0, second=0, microsecond=0)
-        hora_cita_fin = manana.replace(hour=10, minute=50, second=0, microsecond=0)
+        hora_cita_fin = manana.replace(hour=11, minute=0, second=0, microsecond=0)
         
         db.session.add(Cita(
             paciente_id=paciente_id,
@@ -58,7 +67,7 @@ def seed_database():
             motivo_consulta='Ansiedad generalizada'
         ))
         db.session.commit()
-        print("Cita demo creada.")
+        print("Cita demo creada (10:00-11:00).")
 
 if __name__ == "__main__":
     app = create_app()

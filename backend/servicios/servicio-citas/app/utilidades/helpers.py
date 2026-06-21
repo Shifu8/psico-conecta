@@ -3,16 +3,13 @@ import pytz
 
 def generar_slots(hora_inicio, hora_fin, duracion_slot_minutos):
     """
-    Genera una lista de tuplas (inicio, fin) para cada slot dentro del bloque.
+    Genera una lista de diccionarios con hora_inicio y hora_fin para cada
+    slot dentro del bloque dado.
     """
     slots = []
-    actual = hora_inicio
-    
-    # Asegurarnos que actual y hora_fin sean datetime.time para la comparación, pero 
-    # necesitamos hacer cálculos con datetime.
     
     # Creamos objetos datetime artificiales solo para el cálculo de intervalos
-    dt_actual = datetime.combine(datetime.today(), actual)
+    dt_actual = datetime.combine(datetime.today(), hora_inicio)
     dt_fin = datetime.combine(datetime.today(), hora_fin)
     
     delta = timedelta(minutes=duracion_slot_minutos)
@@ -21,7 +18,7 @@ def generar_slots(hora_inicio, hora_fin, duracion_slot_minutos):
         slot_fin = dt_actual + delta
         slots.append({
             'hora_inicio': dt_actual.time().isoformat(),
-            'hora_fin': slot_fin.time().isoformat()
+            'hora_fin': slot_fin.time().isoformat(),
         })
         dt_actual = slot_fin
         

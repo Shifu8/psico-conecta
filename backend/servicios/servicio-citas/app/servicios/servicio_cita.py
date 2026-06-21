@@ -5,13 +5,14 @@ from app.modelos.disponibilidad import Disponibilidad
 from datetime import datetime, timedelta
 import pytz
 
+DURACION_CITA_MINUTOS = 60
+
+
 class ServicioCita:
     @staticmethod
     def agendar_cita(paciente_id, data):
-        # TODO: Validaciones avanzadas de solapamiento con disponibilidad
         fecha_inicio = data['fecha_hora_inicio']
-        # Por simplicidad, asumimos slots de 50 mins si no se envía fin
-        duracion = 50
+        duracion = DURACION_CITA_MINUTOS
         
         # Validar solapamiento de cita
         solapada = Cita.query.filter(

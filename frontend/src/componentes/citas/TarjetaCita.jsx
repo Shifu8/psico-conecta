@@ -26,8 +26,8 @@ const TarjetaCita = ({ cita, onClick, esPsicologo }) => {
       
       <div className="text-sm text-gray-600 dark:text-gray-300">
         <p className="mb-1">
-          <span className="font-medium">{esPsicologo ? 'Paciente' : 'Psicólogo'}:</span>{' '}
-          {esPsicologo ? cita.paciente_id : cita.psicologo_id} {/* En el futuro, resolver a nombres reales */}
+          <span className="font-medium">{esPsicologo ? 'Paciente' : 'Profesional'}:</span>{' '}
+          {esPsicologo ? `ID: ${cita.paciente_id}` : (cita.nombrePsicologo || cita.psicologo_id)}
         </p>
         <p>
           <span className="font-medium">Modalidad:</span> {cita.modalidad}

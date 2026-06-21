@@ -4,8 +4,8 @@ import pytz
 
 class CitaSchema(Schema):
     id = fields.UUID(dump_only=True)
-    paciente_id = fields.UUID(required=True)
-    psicologo_id = fields.UUID(required=True)
+    paciente_id = fields.Integer(required=True)
+    psicologo_id = fields.Integer(required=True)
     fecha_hora_inicio = fields.DateTime(required=True)
     fecha_hora_fin = fields.DateTime(required=True)
     estado = fields.String(validate=validate.OneOf(['PENDIENTE', 'CONFIRMADA', 'REPROGRAMADA', 'CANCELADA', 'COMPLETADA', 'NO_ASISTIDA']))
@@ -13,13 +13,13 @@ class CitaSchema(Schema):
     motivo_consulta = fields.String(validate=validate.Length(max=500), allow_none=True)
     notas_psicologo = fields.String(allow_none=True)
     motivo_cancelacion = fields.String(allow_none=True)
-    cancelado_por = fields.UUID(allow_none=True)
+    cancelado_por = fields.Integer(allow_none=True)
     reprogramada_desde = fields.UUID(allow_none=True)
     fecha_creacion = fields.DateTime(dump_only=True)
     fecha_actualizacion = fields.DateTime(dump_only=True)
 
 class AgendarCitaSchema(Schema):
-    psicologo_id = fields.UUID(required=True)
+    psicologo_id = fields.Integer(required=True)
     fecha_hora_inicio = fields.DateTime(required=True)
     modalidad = fields.String(validate=validate.OneOf(['VIRTUAL', 'PRESENCIAL']), load_default='VIRTUAL')
     motivo_consulta = fields.String(validate=validate.Length(max=500), allow_none=True)
@@ -45,6 +45,6 @@ class HistorialCambioCitaSchema(Schema):
     cita_id = fields.UUID(required=True)
     estado_anterior = fields.String(allow_none=True)
     estado_nuevo = fields.String(required=True)
-    cambiado_por = fields.UUID(required=True)
+    cambiado_por = fields.Integer(required=True)
     motivo = fields.String(allow_none=True)
     fecha_cambio = fields.DateTime(dump_only=True)

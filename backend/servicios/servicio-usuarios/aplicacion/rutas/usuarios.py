@@ -141,7 +141,7 @@ def get_user(user_id):
     current_user = get_current_user()
     if not current_user or current_user.status != "active":
         return jsonify(message="Usuario inactivo o inexistente."), 403
-    if current_user.id != user_id and current_user.role.name != "ADMIN":
+    if current_user.id != user_id and current_user.role.name not in ["ADMIN", "PSYCHOLOGIST"]:
         return jsonify(message="No tienes permisos para consultar este perfil."), 403
     user = db.get_or_404(User, user_id, description="Usuario no encontrado.")
     return jsonify(user=user.to_dict())

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_jwt
-from app.utilidades.autenticacion import requiere_rol
+from app.utilidades.autenticacion import requiere_rol, _extraer_rol
 from app.servicios.servicio_cita import ServicioCita
 from app.modelos.cita import Cita
 from app.esquemas.esquema_cita import CitaSchema, AgendarCitaSchema, CancelarCitaSchema
@@ -19,15 +19,15 @@ def agendar_cita():
     schema = AgendarCitaSchema()
     data = request.json
     
-    # Pre-parse date for validation
+    errors = schema.validate(data)
+    if errors:
+        return jsonify(errors), 400
+        
+    # Pre-parse date for logic
     if 'fecha_hora_inicio' in data:
         dt = parse_iso_datetime(data['fecha_hora_inicio'])
         if dt:
             data['fecha_hora_inicio'] = dt
-            
-    errors = schema.validate(data)
-    if errors:
-        return jsonify(errors), 400
         
     cita, error = ServicioCita.agendar_cita(paciente_id, data)
     if error:
@@ -40,7 +40,7 @@ def agendar_cita():
 def mis_citas():
     claims = get_jwt()
     user_id = claims.get('sub')
-    rol = claims.get('rol')
+    rol = _extraer_rol(claims)
     
     if rol == 'PACIENTE':
         citas = Cita.query.filter_by(paciente_id=user_id).order_by(Cita.fecha_hora_inicio.desc()).all()
@@ -48,6 +48,24 @@ def mis_citas():
         citas = Cita.query.filter_by(psicologo_id=user_id).order_by(Cita.fecha_hora_inicio.desc()).all()
         
     return jsonify(citas_list_schema.dump(citas)), 200
+
+@bp_citas.route('/<uuid:cita_id>', methods=['GET'])
+@requiere_rol('PACIENTE', 'PSICOLOGO', 'ADMIN')
+def obtener_cita(cita_id):
+    claims = get_jwt()
+    user_id = claims.get('sub')
+    rol = _extraer_rol(claims)
+    
+    cita = Cita.query.get(cita_id)
+    if not cita:
+        return jsonify({"error": "Cita no encontrada"}), 404
+        
+    if rol == 'PACIENTE' and cita.paciente_id != user_id:
+        return jsonify({"error": "No tienes acceso a esta cita"}), 403
+    if rol == 'PSICOLOGO' and cita.psicologo_id != user_id:
+        return jsonify({"error": "No tienes acceso a esta cita"}), 403
+        
+    return jsonify(cita_schema.dump(cita)), 200
 
 @bp_citas.route('/<uuid:cita_id>/confirmar', methods=['PUT'])
 @requiere_rol('PSICOLOGO')
@@ -65,7 +83,7 @@ def confirmar_cita(cita_id):
 def cancelar_cita(cita_id):
     claims = get_jwt()
     user_id = claims.get('sub')
-    rol = claims.get('rol')
+    rol = _extraer_rol(claims)
     
     schema = CancelarCitaSchema()
     errors = schema.validate(request.json)

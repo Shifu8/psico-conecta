@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Usamos el servicio-citas directamente en el puerto 5002 para desarrollo local
-const baseURL = import.meta.env.VITE_CITAS_API_URL || 'http://localhost:5002/api';
+const baseURL = (import.meta.env.VITE_CITAS_API_URL || 'http://localhost:5002') + '/api';
 
 const API = axios.create({ baseURL });
 

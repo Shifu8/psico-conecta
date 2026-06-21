@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useCitas } from '../../hooks/useCitas';
 import TarjetaCita from '../../componentes/citas/TarjetaCita';
 import { usarAutenticacion } from '../../contexto/ContextoAutenticacion';
+import api from '../../servicios/api';
+import { useState } from 'react';
 
 export default function PaginaCitas() {
   const { citas, loading, error, fetchMisCitas } = useCitas();
@@ -10,9 +12,21 @@ export default function PaginaCitas() {
   const { usuario } = usarAutenticacion();
   const esPsicologo = usuario?.role === "PSYCHOLOGIST" || usuario?.role?.name === "PSYCHOLOGIST";
 
+  const [psicologos, setPsicologos] = useState([]);
+
   useEffect(() => {
     fetchMisCitas();
+    let activo = true;
+    api.get('/api/usuarios/psicologos')
+      .then(res => activo && setPsicologos(res.data.psicologos || []))
+      .catch(console.error);
+    return () => { activo = false; };
   }, [fetchMisCitas]);
+
+  const obtenerNombrePsicologo = (id) => {
+    const psi = psicologos.find(p => String(p.id) === String(id));
+    return psi ? `${psi.first_name} ${psi.last_name}` : `Psicólogo #${id}`;
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -41,7 +55,7 @@ export default function PaginaCitas() {
         {citas.map(cita => (
           <TarjetaCita 
             key={cita.id} 
-            cita={cita} 
+            cita={{...cita, nombrePsicologo: obtenerNombrePsicologo(cita.psicologo_id)}} 
             esPsicologo={esPsicologo}
             onClick={() => navigate(`/citas/${cita.id}`)}
           />

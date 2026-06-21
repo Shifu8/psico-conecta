@@ -8,7 +8,7 @@ bp_disponibilidad = Blueprint('disponibilidad', __name__)
 disp_schema = DisponibilidadSchema()
 disp_list_schema = DisponibilidadSchema(many=True)
 
-@bp_disponibilidad.route('/<uuid:psicologo_id>', methods=['GET'])
+@bp_disponibilidad.route('/<psicologo_id>', methods=['GET'])
 def obtener_disponibilidad(psicologo_id):
     bloques = ServicioDisponibilidad.obtener_disponibilidad(psicologo_id)
     return jsonify(disp_list_schema.dump(bloques)), 200
@@ -27,7 +27,7 @@ def crear_bloque():
     bloque = ServicioDisponibilidad.crear_bloque(psicologo_id, request.json)
     return jsonify(disp_schema.dump(bloque)), 201
 
-@bp_disponibilidad.route('/<uuid:psicologo_id>/slots', methods=['GET'])
+@bp_disponibilidad.route('/<psicologo_id>/slots', methods=['GET'])
 def obtener_slots(psicologo_id):
     fecha_str = request.args.get('fecha')
     if not fecha_str:
@@ -36,5 +36,5 @@ def obtener_slots(psicologo_id):
     try:
         slots = ServicioDisponibilidad.obtener_slots_disponibles(psicologo_id, fecha_str)
         return jsonify({"fecha": fecha_str, "slots": slots}), 200
-    except ValueError:
+    except ValueError as e:
         return jsonify({"error": "Formato de fecha inválido. Use YYYY-MM-DD"}), 400
