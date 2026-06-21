@@ -2,6 +2,7 @@ const API_PRODUCCION = "https://d1wkhs3cq8vcom.cloudfront.net";
 const GOOGLE_CLIENT_ID_PRODUCCION =
   "339658076678-kah0e205d5asf6ufnlh009lh5i4g8u70.apps.googleusercontent.com";
 const TURNSTILE_SITE_KEY_PRODUCCION = "0x4AAAAAADeaQizjXYRnGG6E";
+const POSTHOG_KEY_PRODUCCION = "phc_yr69k3vnBrjCGETfFnGvw2j3XWMQSggpXzoXsoFRYtYf";
 
 const valorEntorno = (nombre) => import.meta.env[nombre]?.trim();
 const captchaDesactivado = valorEntorno("VITE_CAPTCHA_DESACTIVADO") === "true";
@@ -33,5 +34,6 @@ export const TURNSTILE_SITE_KEY =
     : valorEntorno("VITE_TURNSTILE_SITE_KEY") ||
       (import.meta.env.PROD ? TURNSTILE_SITE_KEY_PRODUCCION : "");
 
-export const POSTHOG_KEY = valorEntorno("VITE_POSTHOG_KEY") || "";
+export const POSTHOG_KEY =
+  valorEntorno("VITE_POSTHOG_KEY") || (import.meta.env.PROD ? POSTHOG_KEY_PRODUCCION : "");
 export const POSTHOG_HOST = valorEntorno("VITE_POSTHOG_HOST") || "https://us.i.posthog.com";

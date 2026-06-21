@@ -8,7 +8,7 @@ export const iniciarAnalitica = () => {
   posthog.init(POSTHOG_KEY, {
     api_host: POSTHOG_HOST,
     autocapture: true,
-    capture_pageview: true,
+    capture_pageview: false,
     person_profiles: "identified_only",
     debug: import.meta.env.DEV,
   });
@@ -31,6 +31,14 @@ export const capturarEvento = (nombre, propiedades = {}) => {
   posthog.capture(nombre, {
     app: "psicoconecta",
     ...propiedades,
+  });
+};
+
+export const capturarVistaPagina = () => {
+  if (!inicializada) return;
+  posthog.capture("$pageview", {
+    app: "psicoconecta",
+    $current_url: window.location.href,
   });
 };
 
