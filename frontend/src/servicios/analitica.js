@@ -2,6 +2,61 @@ import posthog from "posthog-js";
 import { POSTHOG_HOST, POSTHOG_KEY } from "./configuracionFrontend";
 
 let inicializada = false;
+let distinctIdActual = null;
+
+const ANALITICA_ID_KEY = "psicoconecta_analitica_id";
+
+const crearIdentificador = () => {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
+const obtenerDistinctId = () => {
+  if (distinctIdActual) return distinctIdActual;
+  const guardado = localStorage.getItem(ANALITICA_ID_KEY);
+  if (guardado) {
+    distinctIdActual = guardado;
+    return distinctIdActual;
+  }
+  distinctIdActual = `anonimo_${crearIdentificador()}`;
+  localStorage.setItem(ANALITICA_ID_KEY, distinctIdActual);
+  return distinctIdActual;
+};
+
+const endpointPostHog = () => `${POSTHOG_HOST.replace(/\/$/, "")}/capture/`;
+
+const enviarEventoDirecto = (nombre, propiedades) => {
+  if (!POSTHOG_KEY) return;
+  const payload = JSON.stringify({
+    token: POSTHOG_KEY,
+    event: nombre,
+    distinct_id: obtenerDistinctId(),
+    properties: propiedades,
+  });
+  const url = endpointPostHog();
+
+  if (navigator.sendBeacon) {
+    const enviado = navigator.sendBeacon(
+      url,
+      new Blob([payload], { type: "application/json" }),
+    );
+    if (enviado) return;
+  }
+
+  fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: payload,
+    keepalive: true,
+    mode: "cors",
+  }).catch(() => {});
+};
+
+const propiedadesBase = (propiedades = {}) => ({
+  app: "psicoconecta",
+  $insert_id: `psicoconecta_${crearIdentificador()}`,
+  ...propiedades,
+});
 
 export const iniciarAnalitica = () => {
   if (!POSTHOG_KEY || inicializada) return false;
@@ -19,7 +74,10 @@ export const iniciarAnalitica = () => {
 export const analiticaActiva = () => inicializada;
 
 export const identificarUsuario = (usuario) => {
-  if (!inicializada || !usuario?.id) return;
+  if (!usuario?.id) return;
+  distinctIdActual = `usuario_${usuario.id}`;
+  localStorage.setItem(ANALITICA_ID_KEY, distinctIdActual);
+  if (!inicializada) return;
   posthog.identify(`usuario_${usuario.id}`, {
     rol: usuario.role,
     estado: usuario.status,
@@ -27,19 +85,22 @@ export const identificarUsuario = (usuario) => {
 };
 
 export const capturarEvento = (nombre, propiedades = {}) => {
-  if (!inicializada) return;
-  posthog.capture(nombre, {
-    app: "psicoconecta",
-    ...propiedades,
-  });
+  const propiedadesEvento = propiedadesBase(propiedades);
+  if (inicializada) {
+    posthog.capture(nombre, propiedadesEvento);
+  }
+  enviarEventoDirecto(nombre, propiedadesEvento);
 };
 
 export const capturarVistaPagina = () => {
-  if (!inicializada) return;
-  posthog.capture("$pageview", {
-    app: "psicoconecta",
+  const propiedadesEvento = propiedadesBase({
     $current_url: window.location.href,
+    path: window.location.pathname,
   });
+  if (inicializada) {
+    posthog.capture("$pageview", propiedadesEvento);
+  }
+  enviarEventoDirecto("$pageview", propiedadesEvento);
 };
 
 export const resetearAnalitica = () => {
