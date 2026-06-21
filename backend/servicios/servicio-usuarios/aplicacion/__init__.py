@@ -7,7 +7,7 @@ from werkzeug.exceptions import HTTPException
 from aplicacion.configuracion import Config
 from aplicacion.extensiones import bcrypt, cors, db, jwt, migrate
 from aplicacion.modelos import TokenBlocklist
-from aplicacion.rutas import auth_bp, dashboard_bp, roles_bp, users_bp
+from aplicacion.rutas import audit_bp, auth_bp, dashboard_bp, roles_bp, users_bp
 from aplicacion.utilidades.intentos_login import TooManyLoginAttemptsError
 
 
@@ -56,6 +56,7 @@ def create_app(test_config=None):
     app.register_blueprint(users_bp)
     app.register_blueprint(roles_bp)
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(audit_bp)
 
     @app.get("/health")
     def health():

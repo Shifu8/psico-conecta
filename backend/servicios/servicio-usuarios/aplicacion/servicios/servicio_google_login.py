@@ -77,11 +77,13 @@ def google_login(token):
 
     user = User.query.filter_by(email=email).first()
 
+    creado = False
     if user:
         if user.status != "active":
             raise ValueError("Tu cuenta se encuentra inactiva.")
         user.google_id = google_id
     else:
+        creado = True
         role = Role.query.filter_by(name="PATIENT").first()
         if not role:
             raise RuntimeError("Ejecuta datos_iniciales.py para crear los roles iniciales.")
@@ -100,4 +102,4 @@ def google_login(token):
     access_token = create_access_token(
         identity=str(user.id), additional_claims={"role": user.role.name}
     )
-    return user, access_token
+    return user, access_token, creado

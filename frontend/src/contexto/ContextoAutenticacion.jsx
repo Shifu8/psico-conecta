@@ -6,6 +6,11 @@ import {
   obtenerMiPerfil,
   registrarUsuario,
 } from "../servicios/servicioAutenticacion";
+import {
+  capturarEvento,
+  identificarUsuario,
+  resetearAnalitica,
+} from "../servicios/analitica";
 
 const ContextoAutenticacion = createContext(null);
 
@@ -21,7 +26,10 @@ export function ProveedorAutenticacion({ children }) {
     }
 
     obtenerMiPerfil()
-      .then(({ data }) => setUsuario(data.user))
+      .then(({ data }) => {
+        setUsuario(data.user);
+        identificarUsuario(data.user);
+      })
       .catch(() => localStorage.removeItem("psicoconecta_token"))
       .finally(() => setCargando(false));
   }, []);
@@ -36,11 +44,14 @@ export function ProveedorAutenticacion({ children }) {
     const { data } = await iniciarSesion(credenciales);
     localStorage.setItem("psicoconecta_token", data.access_token);
     setUsuario(data.user);
+    identificarUsuario(data.user);
+    capturarEvento("inicio_sesion_exitoso", { rol: data.user.role });
     return data.user;
   };
 
   const registrar = async (datos) => {
     const { data } = await registrarUsuario(datos);
+    capturarEvento("registro_usuario", { rol: data.user.role });
     return data.user;
   };
 
@@ -48,15 +59,19 @@ export function ProveedorAutenticacion({ children }) {
     const { data } = await googleLoginRequest(credential);
     localStorage.setItem("psicoconecta_token", data.access_token);
     setUsuario(data.user);
+    identificarUsuario(data.user);
+    capturarEvento("inicio_google_exitoso", { rol: data.user.role });
     return data.user;
   };
 
   const salir = async () => {
     try {
+      capturarEvento("cierre_sesion", { rol: usuario?.role });
       await cerrarSesion();
     } finally {
       localStorage.removeItem("psicoconecta_token");
       setUsuario(null);
+      resetearAnalitica();
     }
   };
 

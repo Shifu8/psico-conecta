@@ -18,11 +18,13 @@ from aplicacion.servicios.servicio_autenticacion import (
     register_user,
     reset_password,
 )
+from aplicacion.servicios.servicio_auditoria import registrar_evento_auditoria
 from aplicacion.servicios.servicio_captcha import verificar_captcha
 from aplicacion.servicios.servicio_cognito import register_user_cognito
 from aplicacion.servicios.servicio_google_login import google_login as google_login_service
 from aplicacion.servicios.servicio_gmail import enviar_correo_recuperacion
 from aplicacion.utilidades.intentos_login import (
+    TooManyLoginAttemptsError,
     clear_login_attempts,
     ensure_login_allowed,
     register_failed_login,
@@ -47,6 +49,13 @@ def register():
     if cognito_response:
         user.cognito_sub = cognito_response.get("UserSub")
         db.session.commit()
+    registrar_evento_auditoria(
+        "register_success",
+        "autenticacion",
+        target=user,
+        request_obj=request,
+        detail={"metodo": "formulario"},
+    )
     return jsonify(message="Usuario registrado correctamente.", user=user.to_dict()), 201
 
 
@@ -55,21 +64,64 @@ def login():
     data = LoginSchema().load(request.get_json(silent=True) or {})
     verificar_captcha(data.get("captcha_token"), request.remote_addr)
     ip_address = request.remote_addr
-    ensure_login_allowed(ip_address, data["email"])
+    try:
+        ensure_login_allowed(ip_address, data["email"])
+    except TooManyLoginAttemptsError:
+        registrar_evento_auditoria(
+            "login_blocked",
+            "autenticacion",
+            status="failure",
+            actor_email=data["email"].strip().lower(),
+            request_obj=request,
+            detail={"motivo": "demasiados_intentos"},
+        )
+        raise
     try:
         user, access_token = authenticate_user(data)
     except InvalidCredentialsError:
         register_failed_login(ip_address, data["email"])
+        registrar_evento_auditoria(
+            "login_failed",
+            "autenticacion",
+            status="failure",
+            actor_email=data["email"].strip().lower(),
+            request_obj=request,
+            detail={"motivo": "credenciales_invalidas"},
+        )
+        raise
+    except ValueError as error:
+        registrar_evento_auditoria(
+            "login_failed",
+            "autenticacion",
+            status="failure",
+            actor_email=data["email"].strip().lower(),
+            request_obj=request,
+            detail={"motivo": str(error)},
+        )
         raise
     clear_login_attempts(ip_address, data["email"])
+    registrar_evento_auditoria(
+        "login_success",
+        "autenticacion",
+        actor=user,
+        request_obj=request,
+        detail={"metodo": "correo"},
+    )
     return jsonify(access_token=access_token, user=user.to_dict())
 
 
 @auth_bp.post("/cierre-sesion")
 @jwt_required()
 def logout():
+    user = get_current_user()
     db.session.add(TokenBlocklist(jti=get_jwt()["jti"]))
     db.session.commit()
+    registrar_evento_auditoria(
+        "logout",
+        "autenticacion",
+        actor=user,
+        request_obj=request,
+    )
     return jsonify(message="Sesion cerrada correctamente.")
 
 
@@ -78,6 +130,13 @@ def forgot_password():
     data = ForgotPasswordSchema().load(request.get_json(silent=True) or {})
     verificar_captcha(data.get("captcha_token"), request.remote_addr)
     token = create_password_reset(data["email"])
+    registrar_evento_auditoria(
+        "password_reset_requested",
+        "autenticacion",
+        actor_email=data["email"].strip().lower(),
+        request_obj=request,
+        detail={"token_generado": bool(token)},
+    )
     response = {"message": "Si el correo está registrado, recibirás instrucciones por correo."}
     if token:
         resultado = enviar_correo_recuperacion(data["email"], token)
@@ -110,9 +169,24 @@ def google_auth():
         return jsonify(message="Token de Google requerido."), 400
     data = GoogleLoginSchema().load(payload)
     try:
-        user, access_token = google_login_service(data["credential"])
+        user, access_token, creado = google_login_service(data["credential"])
+        registrar_evento_auditoria(
+            "google_register_success" if creado else "google_login_success",
+            "autenticacion",
+            actor=user,
+            target=user if creado else None,
+            request_obj=request,
+            detail={"metodo": "google"},
+        )
         return jsonify(access_token=access_token, user=user.to_dict())
     except ValueError as e:
+        registrar_evento_auditoria(
+            "google_login_failed",
+            "autenticacion",
+            status="failure",
+            request_obj=request,
+            detail={"motivo": str(e)},
+        )
         return jsonify(message=str(e)), 400
 
 

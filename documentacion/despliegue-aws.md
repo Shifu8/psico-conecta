@@ -1,5 +1,8 @@
 # Despliegue en AWS Console
 
+> Para la parte de monitoreo de infraestructura y auditoria SaaS, revisa tambien
+> `documentacion/monitoreo-aws-cloudwatch.md`.
+
 ## Requisitos previos
 
 - Cuenta AWS (free tier suficiente para desarrollo)

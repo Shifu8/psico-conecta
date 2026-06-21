@@ -4,12 +4,16 @@ import {
   CheckCircle2,
   CreditCard,
   Edit3,
+  FileClock,
   HeartPulse,
+  KeyRound,
   Search,
   Server,
+  ShieldAlert,
   ShieldCheck,
   Trash2,
   UserCog,
+  UserPlus,
   UserRoundCheck,
   UsersRound,
   Video,
@@ -20,12 +24,27 @@ import AvatarUsuario from "../../componentes/AvatarUsuario";
 import BarraProgreso from "../../componentes/BarraProgreso";
 import { usarAutenticacion } from "../../contexto/ContextoAutenticacion";
 import api from "../../servicios/api";
+import { capturarEvento } from "../../servicios/analitica";
 import { obtenerConfiguracionGoogle } from "../../servicios/servicioAutenticacion";
 import { obtenerDatosOperativos, obtenerEstadoServicios } from "../../servicios/servicioModulos";
 import EncabezadoPanel from "./EncabezadoPanel";
 
 const nombresRoles = { ADMIN: "Administrador", PSYCHOLOGIST: "Psicólogo", PATIENT: "Paciente" };
 const estadosUsuario = { active: "Activo", inactive: "Pausado" };
+const etiquetasEventos = {
+  admin_user_deactivated: "Usuario desactivado",
+  admin_user_status_changed: "Estado actualizado",
+  admin_user_updated: "Perfil actualizado",
+  google_login_failed: "Google rechazado",
+  google_login_success: "Acceso con Google",
+  google_register_success: "Registro con Google",
+  login_blocked: "Acceso bloqueado",
+  login_failed: "Inicio fallido",
+  login_success: "Inicio de sesión",
+  logout: "Cierre de sesión",
+  password_reset_requested: "Recuperación solicitada",
+  register_success: "Registro creado",
+};
 const estado = (item) => String(item?.estado || item?.status || "pendiente").toLowerCase();
 const fechaCita = (cita) => cita.fecha || cita.fecha_inicio || cita.inicio || cita.created_at || cita.creado_en;
 const esCompletado = (valor) => ["completada", "completado", "atendida", "finalizada", "finalizado", "pagado", "aprobado"].includes(valor);
@@ -47,6 +66,16 @@ const formatearHora = (valor) => {
   return new Intl.DateTimeFormat("es-EC", { hour: "2-digit", minute: "2-digit" }).format(fecha);
 };
 
+const formatearFechaHora = (valor) => {
+  if (!valor) return "Sin fecha";
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) return "Sin fecha";
+  return new Intl.DateTimeFormat("es-EC", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(fecha);
+};
+
 const esHoy = (valor) => {
   const fecha = new Date(valor);
   return !Number.isNaN(fecha.getTime()) && fecha.toDateString() === new Date().toDateString();
@@ -62,6 +91,7 @@ export default function PanelAdministrador() {
   const [usuarios, setUsuarios] = useState([]);
   const [datos, setDatos] = useState({ citas: [], sesiones: [], pagos: [], emociones: [], lecturasIot: [] });
   const [servicios, setServicios] = useState([]);
+  const [auditoria, setAuditoria] = useState(null);
   const [googleOAuth, setGoogleOAuth] = useState(null);
   const [modulosErrores, setModulosErrores] = useState([]);
   const [busqueda, setBusqueda] = useState("");
@@ -74,11 +104,12 @@ export default function PanelAdministrador() {
   const cargarDatos = async () => {
     setCargando(true);
     setError("");
-    const [usuariosRes, modulosRes, serviciosRes, googleRes] = await Promise.allSettled([
+    const [usuariosRes, modulosRes, serviciosRes, googleRes, auditoriaRes] = await Promise.allSettled([
       api.get("/api/usuarios"),
       obtenerDatosOperativos(),
       obtenerEstadoServicios(),
       obtenerConfiguracionGoogle(),
+      api.get("/api/usuarios/auditoria/resumen?dias=7&limite=8"),
     ]);
 
     if (usuariosRes.status === "fulfilled") {
@@ -96,6 +127,7 @@ export default function PanelAdministrador() {
 
     if (serviciosRes.status === "fulfilled") setServicios(serviciosRes.value);
     if (googleRes.status === "fulfilled") setGoogleOAuth(googleRes.value.data);
+    if (auditoriaRes.status === "fulfilled") setAuditoria(auditoriaRes.value.data);
     setCargando(false);
   };
 
@@ -107,7 +139,12 @@ export default function PanelAdministrador() {
     setProcesando(item.id);
     setError("");
     try {
-      await api.patch(`/api/usuarios/${item.id}/status`, { status: item.status === "active" ? "inactive" : "active" });
+      const estadoNuevo = item.status === "active" ? "inactive" : "active";
+      await api.patch(`/api/usuarios/${item.id}/status`, { status: estadoNuevo });
+      capturarEvento("admin_usuario_estado_actualizado", {
+        estado_nuevo: estadoNuevo,
+        rol_objetivo: item.role,
+      });
       await cargarDatos();
     } catch (excepcion) {
       setError(excepcion.response?.data?.message || "No fue posible actualizar el estado.");
@@ -133,6 +170,10 @@ export default function PanelAdministrador() {
         phone: formulario.phone || null,
         role: formulario.role,
       });
+      capturarEvento("admin_usuario_editado", {
+        rol_nuevo: formulario.role,
+        rol_anterior: editando.role,
+      });
       setEditando(null);
       await cargarDatos();
     } catch (excepcion) {
@@ -149,6 +190,7 @@ export default function PanelAdministrador() {
     setError("");
     try {
       await api.delete(`/api/usuarios/${item.id}`);
+      capturarEvento("admin_usuario_desactivado", { rol_objetivo: item.role });
       await cargarDatos();
     } catch (excepcion) {
       setError(excepcion.response?.data?.message || "No fue posible desactivar el usuario.");
@@ -164,6 +206,13 @@ export default function PanelAdministrador() {
   const pacientes = usuarios.filter((item) => item.role === "PATIENT");
   const administradores = usuarios.filter((item) => item.role === "ADMIN");
   const totalUsuarios = Math.max(usuarios.length, 1);
+  const metricasAuditoria = auditoria?.metricas || {};
+  const eventosAuditoria = auditoria?.eventos_recientes || [];
+  const serieAuditoria = auditoria?.serie_diaria || [];
+  const maximoSerieAuditoria = Math.max(
+    ...serieAuditoria.map((item) => item.accesos + item.fallos + item.registros + item.administracion),
+    1,
+  );
 
   const usuariosFiltrados = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
@@ -230,10 +279,12 @@ export default function PanelAdministrador() {
   ];
 
   const seguridad = [
-    { titulo: "Sesiones recientes", valor: "No registrado", detalle: "Listo para bitácora de login" },
-    { titulo: "Cuentas pausadas", valor: inactivos, detalle: "Bloqueo administrativo" },
-    { titulo: "Google OAuth", valor: googleOAuth?.habilitado ? "Activo" : "Sin configurar", detalle: "Inicio con Google" },
-    { titulo: "Turnstile", valor: "Preparado", detalle: "Registro e inicio protegibles" },
+    { titulo: "Inicios exitosos", valor: metricasAuditoria.inicios_sesion || 0, detalle: "Últimos 7 días", icono: KeyRound },
+    { titulo: "Inicios fallidos", valor: metricasAuditoria.inicios_fallidos || 0, detalle: "Alertas de acceso", icono: ShieldAlert },
+    { titulo: "Registros", valor: metricasAuditoria.registros || 0, detalle: "Altas recientes", icono: UserPlus },
+    { titulo: "Cambios admin", valor: metricasAuditoria.cambios_administrativos || 0, detalle: "Control de usuarios", icono: FileClock },
+    { titulo: "Cuentas pausadas", valor: inactivos, detalle: "Bloqueo administrativo", icono: ShieldCheck },
+    { titulo: "Google OAuth", valor: googleOAuth?.habilitado ? "Activo" : "Sin configurar", detalle: "Inicio con Google", icono: KeyRound },
   ];
 
   const citasOrdenadas = [...citas].sort((a, b) => new Date(fechaCita(a) || 0) - new Date(fechaCita(b) || 0)).slice(0, 5);
@@ -421,7 +472,46 @@ export default function PanelAdministrador() {
             <span className="icono-panel"><ShieldCheck size={22} /></span>
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {seguridad.map((item) => <Dato key={item.titulo} titulo={item.titulo} valor={item.valor} detalle={item.detalle} />)}
+            {seguridad.map((item) => <Dato key={item.titulo} {...item} />)}
+          </div>
+          <div className="mt-6 border-t border-slate-100 pt-5 dark:border-slate-800">
+            <div className="flex items-center justify-between gap-4">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">Tendencia de auditoría</h3>
+              <span className="text-xs font-bold text-slate-400">7 días</span>
+            </div>
+            <div className="mt-4 grid grid-cols-7 items-end gap-2">
+              {serieAuditoria.map((punto) => {
+                const total = punto.accesos + punto.fallos + punto.registros + punto.administracion;
+                const altura = Math.max(12, Math.round((total / maximoSerieAuditoria) * 88));
+                return (
+                  <div key={punto.fecha} className="flex flex-col items-center gap-2">
+                    <div className="flex h-24 w-full items-end justify-center rounded-xl bg-slate-50 px-1 dark:bg-slate-800/70">
+                      <div
+                        className="w-full max-w-5 rounded-t-lg bg-blue-600 dark:bg-blue-300"
+                        style={{ height: `${altura}px` }}
+                        title={`${total} eventos`}
+                      />
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-400">{punto.fecha.slice(5)}</span>
+                  </div>
+                );
+              })}
+              {serieAuditoria.length === 0 && (
+                <p className="col-span-7 py-6 text-sm text-slate-400">Todavía no hay eventos de auditoría.</p>
+              )}
+            </div>
+          </div>
+          <div className="mt-6 border-t border-slate-100 pt-5 dark:border-slate-800">
+            <div className="flex items-center justify-between gap-4">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">Últimos eventos</h3>
+              <FileClock size={18} className="text-blue-600 dark:text-blue-300" />
+            </div>
+            <div className="mt-3 divide-y divide-slate-100 dark:divide-slate-800">
+              {eventosAuditoria.slice(0, 5).map((evento) => <EventoAuditoria key={evento.id} evento={evento} />)}
+              {eventosAuditoria.length === 0 && (
+                <p className="py-6 text-sm text-slate-400">Sin eventos recientes.</p>
+              )}
+            </div>
           </div>
         </article>
       </section>
@@ -488,10 +578,31 @@ export default function PanelAdministrador() {
   );
 }
 
-function Dato({ titulo, valor, detalle, tono }) {
+function EventoAuditoria({ evento }) {
+  const fallido = evento.status === "failure";
+  const etiqueta = etiquetasEventos[evento.event_type] || evento.event_type;
+  const actor = evento.actor_email || evento.target_email || "Sistema";
+  return (
+    <div className="flex items-start justify-between gap-3 py-3 text-sm">
+      <div className="min-w-0">
+        <p className="font-black text-slate-800 dark:text-slate-100">{etiqueta}</p>
+        <p className="mt-1 truncate text-xs text-slate-400">{actor}</p>
+      </div>
+      <div className="shrink-0 text-right">
+        <span className={`rounded-full px-3 py-1 text-[11px] font-black ${fallido ? "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-200" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"}`}>
+          {fallido ? "Fallido" : "OK"}
+        </span>
+        <p className="mt-1 text-[11px] text-slate-400">{formatearFechaHora(evento.created_at)}</p>
+      </div>
+    </div>
+  );
+}
+
+function Dato({ titulo, valor, detalle, tono, icono: Icono }) {
   const clase = tono === "emerald" ? "bg-emerald-50 dark:bg-emerald-950/30" : "bg-slate-50 dark:bg-slate-800/70";
   return (
     <div className={`rounded-2xl p-4 ${clase}`}>
+      {Icono && <Icono size={18} className="mb-3 text-blue-600 dark:text-blue-300" />}
       <p className="text-xl font-black text-slate-900 dark:text-white">{valor}</p>
       <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-300">{titulo}</p>
       {detalle && <p className="mt-1 text-xs text-slate-400">{detalle}</p>}

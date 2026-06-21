@@ -8,6 +8,7 @@ from aplicacion.intermediarios.autenticacion import get_current_user
 from aplicacion.intermediarios.roles import role_required
 from aplicacion.modelos import User
 from aplicacion.esquemas.usuario import UserStatusSchema, UserUpdateSchema
+from aplicacion.servicios.servicio_auditoria import registrar_evento_auditoria
 from aplicacion.servicios.servicio_usuario import set_user_status, update_user
 from aplicacion.utilidades.tiempo import utc_now
 
@@ -162,23 +163,58 @@ def edit_user(user_id):
     if "role" in data and not is_admin:
         return jsonify(message="Solo un administrador puede cambiar roles."), 403
     user = db.get_or_404(User, user_id, description="Usuario no encontrado.")
-    return jsonify(message="Perfil actualizado.", user=update_user(user, data, is_admin).to_dict())
+    rol_anterior = user.role.name if user.role else None
+    actualizado = update_user(user, data, is_admin)
+    if is_admin:
+        registrar_evento_auditoria(
+            "admin_user_updated",
+            "administracion",
+            actor=current_user,
+            target=actualizado,
+            request_obj=request,
+            detail={
+                "campos": sorted(data.keys()),
+                "rol_anterior": rol_anterior,
+                "rol_nuevo": actualizado.role.name if actualizado.role else None,
+            },
+        )
+    return jsonify(message="Perfil actualizado.", user=actualizado.to_dict())
 
 
 @users_bp.delete("/<int:user_id>")
 @role_required("ADMIN")
 def delete_user(user_id):
+    current_user = get_current_user()
     user = db.get_or_404(User, user_id, description="Usuario no encontrado.")
-    return jsonify(
-        message="Usuario desactivado.", user=set_user_status(user, "inactive").to_dict()
+    actualizado = set_user_status(user, "inactive")
+    registrar_evento_auditoria(
+        "admin_user_deactivated",
+        "administracion",
+        actor=current_user,
+        target=actualizado,
+        request_obj=request,
+        detail={"estado_nuevo": "inactive"},
     )
+    return jsonify(message="Usuario desactivado.", user=actualizado.to_dict())
 
 
 @users_bp.patch("/<int:user_id>/status")
 @role_required("ADMIN")
 def change_status(user_id):
+    current_user = get_current_user()
     data = UserStatusSchema().load(request.get_json(silent=True) or {})
     user = db.get_or_404(User, user_id, description="Usuario no encontrado.")
-    return jsonify(
-        message="Estado actualizado.", user=set_user_status(user, data["status"]).to_dict()
+    estado_anterior = user.status
+    actualizado = set_user_status(user, data["status"])
+    registrar_evento_auditoria(
+        "admin_user_status_changed",
+        "administracion",
+        actor=current_user,
+        target=actualizado,
+        request_obj=request,
+        detail={
+            "estado_anterior": estado_anterior,
+            "estado_nuevo": actualizado.status,
+        },
     )
+    return jsonify(message="Estado actualizado.", user=actualizado.to_dict())

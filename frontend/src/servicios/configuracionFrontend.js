@@ -32,3 +32,6 @@ export const TURNSTILE_SITE_KEY =
     ? ""
     : valorEntorno("VITE_TURNSTILE_SITE_KEY") ||
       (import.meta.env.PROD ? TURNSTILE_SITE_KEY_PRODUCCION : "");
+
+export const POSTHOG_KEY = valorEntorno("VITE_POSTHOG_KEY") || "";
+export const POSTHOG_HOST = valorEntorno("VITE_POSTHOG_HOST") || "https://us.i.posthog.com";

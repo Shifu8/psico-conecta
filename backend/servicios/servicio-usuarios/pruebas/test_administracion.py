@@ -82,6 +82,36 @@ def test_admin_panel(client, admin_headers):
     assert response.json["role"] == "ADMIN"
 
 
+def test_admin_ve_resumen_auditoria(client, admin_headers):
+    response = client.get("/api/usuarios/auditoria/resumen", headers=admin_headers)
+    assert response.status_code == 200
+    assert "metricas" in response.json
+    assert response.json["metricas"]["inicios_sesion"] >= 1
+    assert "eventos_recientes" in response.json
+
+
+def test_auditoria_registra_login_fallido(client, admin_headers):
+    fallo = client.post(
+        "/api/usuarios/autenticacion/inicio-sesion",
+        json={"email": "paciente@psicoconecta.com", "password": "Incorrecta123*"},
+    )
+    assert fallo.status_code == 400
+
+    response = client.get("/api/usuarios/auditoria/resumen", headers=admin_headers)
+    assert response.status_code == 200
+    assert response.json["metricas"]["inicios_fallidos"] >= 1
+
+
+def test_paciente_no_puede_ver_auditoria(client):
+    login = client.post(
+        "/api/usuarios/autenticacion/inicio-sesion",
+        json={"email": "paciente@psicoconecta.com", "password": "Paciente123*"},
+    )
+    headers = {"Authorization": f"Bearer {login.json['access_token']}"}
+    response = client.get("/api/usuarios/auditoria/resumen", headers=headers)
+    assert response.status_code == 403
+
+
 def test_paciente_no_puede_abrir_panel_admin(client):
     login = client.post(
         "/api/usuarios/autenticacion/inicio-sesion",

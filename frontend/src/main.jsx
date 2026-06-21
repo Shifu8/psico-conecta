@@ -4,9 +4,11 @@ import { BrowserRouter } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import Aplicacion from "./Aplicacion";
 import "./index.css";
+import { iniciarAnalitica } from "./servicios/analitica";
 import { GOOGLE_CLIENT_ID } from "./servicios/configuracionFrontend";
 
 const googleClientId = GOOGLE_CLIENT_ID;
+iniciarAnalitica();
 
 const temaGuardado = localStorage.getItem("psicoconecta_tema");
 const usarTemaOscuro = temaGuardado
