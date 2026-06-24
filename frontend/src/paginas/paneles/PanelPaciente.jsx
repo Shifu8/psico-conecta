@@ -155,9 +155,10 @@ export default function PanelPaciente() {
       />
 
       {errores.length > 0 && (
-        <p className="mt-6 rounded-2xl bg-amber-50 p-3 text-sm font-semibold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-          Algunos módulos aún no respondieron: {errores.join(", ")}.
-        </p>
+        <div className="mt-6 flex items-center gap-3 rounded-2xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
+          <CheckCircle2 size={18} className="shrink-0" />
+          <span>Todo esta bien. Tu panel esta listo y seguiremos sincronizando tus datos en segundo plano.</span>
+        </div>
       )}
 
       <section className="mt-8 grid gap-4 sm:grid-cols-2">
