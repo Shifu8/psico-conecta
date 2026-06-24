@@ -31,6 +31,9 @@ def app():
             "GOOGLE_CLIENT_SECRET": "",
             "GOOGLE_REFRESH_TOKEN": "",
             "GOOGLE_SENDER_EMAIL": "",
+            "SES_ENABLED": False,
+            "SES_REGION": "us-east-2",
+            "SES_SENDER_EMAIL": "",
             "TURNSTILE_SECRET_KEY": "",
         }
     )

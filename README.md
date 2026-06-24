@@ -175,10 +175,16 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REFRESH_TOKEN=
 GOOGLE_SENDER_EMAIL=
+SES_ENABLED=false
+SES_REGION=us-east-2
+SES_SENDER_EMAIL=
 FRONTEND_URL=http://localhost:5173
 ```
 
 En modo desarrollo, si no hay credenciales de Gmail, el backend puede devolver el token de recuperacion para pruebas locales.
+Si Gmail devuelve `invalid_grant`, el refresh token ya no es valido y debe
+renovarse con `backend/servicios/servicio-usuarios/setup_google_credentials.py`
+antes de sincronizar secretos en AWS.
 
 ## Credenciales de demostracion
 
@@ -413,6 +419,9 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REFRESH_TOKEN=
 GOOGLE_SENDER_EMAIL=
+SES_ENABLED=false
+SES_REGION=us-east-2
+SES_SENDER_EMAIL=
 FRONTEND_URL=http://localhost:5173
 ```
 

@@ -75,6 +75,9 @@ class Config:
     GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
     GOOGLE_REFRESH_TOKEN = os.getenv("GOOGLE_REFRESH_TOKEN", "")
     GOOGLE_SENDER_EMAIL = os.getenv("GOOGLE_SENDER_EMAIL", "")
+    SES_ENABLED = os.getenv("SES_ENABLED", "false").lower() == "true"
+    SES_REGION = os.getenv("SES_REGION", AWS_REGION)
+    SES_SENDER_EMAIL = os.getenv("SES_SENDER_EMAIL", GOOGLE_SENDER_EMAIL)
     CAPTCHA_DESACTIVADO = os.getenv("CAPTCHA_DESACTIVADO", "false").lower() == "true"
     TURNSTILE_SECRET_KEY = os.getenv("TURNSTILE_SECRET_KEY", "")
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")

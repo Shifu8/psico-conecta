@@ -40,8 +40,22 @@ Administrar la autenticación, autorización y perfil de usuarios de PsicoConect
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_REFRESH_TOKEN`
 - `GOOGLE_SENDER_EMAIL`
+- `SES_ENABLED=false`
+- `SES_REGION=us-east-2`
+- `SES_SENDER_EMAIL`
 - `FRONTEND_URL`
 - `MODO_DESARROLLO=true`
+
+## Recuperacion de contrasena
+
+El envio principal usa Gmail API. Si Google responde `invalid_grant`, el
+`GOOGLE_REFRESH_TOKEN` fue revocado o expiro y debe generarse nuevamente con
+`setup_google_credentials.py`, luego sincronizarse a Secrets Manager con
+`infraestructura/aws/actualizar-secretos-usuarios.ps1`.
+
+Como respaldo operativo se puede activar AWS SES con `SES_ENABLED=true`,
+`SES_REGION` y `SES_SENDER_EMAIL`. La identidad remitente debe estar verificada
+en SES y la tarea ECS debe tener permiso `ses:SendEmail`.
 
 ## Dependencias
 - `-r ../../requirements/usuarios.txt`

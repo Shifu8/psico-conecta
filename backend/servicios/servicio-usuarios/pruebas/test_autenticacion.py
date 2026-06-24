@@ -284,6 +284,27 @@ def test_recuperacion_email_inexistente(client):
     assert response.json.get("reset_token") is None
 
 
+def test_recuperacion_produccion_reporta_correo_no_enviado(client, app, monkeypatch):
+    app.config["MODO_DESARROLLO"] = False
+
+    def fallar_envio(_destinatario, _token):
+        return {"enviado": False, "modo": "sin_proveedor"}
+
+    monkeypatch.setattr(
+        "aplicacion.rutas.autenticacion.enviar_correo_recuperacion",
+        fallar_envio,
+    )
+
+    response = client.post(
+        "/api/usuarios/autenticacion/recuperar-contrasena",
+        json={"email": "paciente@psicoconecta.com"},
+    )
+
+    assert response.status_code == 200
+    assert response.json["correo_enviado"] is False
+    assert response.json.get("reset_token") is None
+
+
 def test_recuperacion_token_invalido(client):
     response = client.post(
         "/api/usuarios/autenticacion/restablecer-contrasena",
