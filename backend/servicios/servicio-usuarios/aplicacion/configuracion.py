@@ -6,7 +6,16 @@ from dotenv import dotenv_values, load_dotenv
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-REPO_DIR = BASE_DIR.parents[2]
+
+
+def encontrar_repo_dir():
+    for ruta in (BASE_DIR, *BASE_DIR.parents):
+        if (ruta / "frontend").exists() and (ruta / "backend").exists():
+            return ruta
+    return BASE_DIR
+
+
+REPO_DIR = encontrar_repo_dir()
 ENV_FILES = (
     BASE_DIR / ".env",
     REPO_DIR / ".env",
