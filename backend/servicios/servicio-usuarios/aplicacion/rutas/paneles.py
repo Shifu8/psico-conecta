@@ -1,4 +1,8 @@
-﻿from flask import Blueprint, jsonify
+﻿# Archivo: paneles.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
+from flask import Blueprint, jsonify
 
 from aplicacion.intermediarios.autenticacion import get_current_user
 from aplicacion.intermediarios.roles import role_required

@@ -1,4 +1,8 @@
-﻿from datetime import timedelta
+﻿# Archivo: servicio_autenticacion.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
+from datetime import timedelta
 
 from flask_jwt_extended import create_access_token
 from sqlalchemy.exc import IntegrityError

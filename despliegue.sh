@@ -1,4 +1,9 @@
-#!/bin/bash
+﻿#!/bin/bash
+
+# Archivo: despliegue.sh
+# Descripción: Script de automatización de tareas y despliegue.
+# Módulo: Proyecto General
+
 set -euo pipefail
 
 # ============================================================

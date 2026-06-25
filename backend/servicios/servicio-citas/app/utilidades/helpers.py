@@ -1,3 +1,7 @@
+﻿# Archivo: helpers.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Citas
+
 from datetime import datetime, timedelta
 import pytz
 

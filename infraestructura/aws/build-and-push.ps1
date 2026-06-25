@@ -1,3 +1,7 @@
+﻿# Archivo: build-and-push.ps1
+# Descripción: Script de automatización de tareas y despliegue.
+# Módulo: Infraestructura
+
 $ACCOUNT_ID = $(aws sts get-caller-identity --query Account --output text)
 $REGION = "us-east-2"
 

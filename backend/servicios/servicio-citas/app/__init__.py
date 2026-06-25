@@ -1,3 +1,7 @@
+﻿# Archivo: __init__.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Citas
+
 import os
 from flask import Flask
 from flask_cors import CORS

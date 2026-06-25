@@ -1,3 +1,7 @@
+﻿# Archivo: actualizar-secretos-usuarios.ps1
+# Descripción: Script de automatización de tareas y despliegue.
+# Módulo: Infraestructura
+
 param(
     [string]$Region = "us-east-2",
     [string]$EnvPath = "backend/servicios/servicio-usuarios/.env"

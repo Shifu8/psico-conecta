@@ -1,4 +1,8 @@
-﻿from flask_jwt_extended import get_jwt_identity
+﻿# Archivo: autenticacion.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
+from flask_jwt_extended import get_jwt_identity
 
 from aplicacion.extensiones import db
 from aplicacion.modelos import User

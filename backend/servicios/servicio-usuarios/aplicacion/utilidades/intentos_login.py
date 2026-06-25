@@ -1,3 +1,7 @@
+﻿# Archivo: intentos_login.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 from math import ceil
 from threading import Lock
 from time import time

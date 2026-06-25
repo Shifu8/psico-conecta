@@ -1,4 +1,8 @@
-﻿import os
+﻿# Archivo: ejecutar.py
+# Descripción: Inicialización y ejecución del servidor de la API.
+# Módulo: Servicio Usuarios
+
+import os
 
 from dotenv import load_dotenv
 

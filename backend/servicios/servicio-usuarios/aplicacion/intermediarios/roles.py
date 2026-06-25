@@ -1,4 +1,8 @@
-﻿from functools import wraps
+﻿# Archivo: roles.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
+from functools import wraps
 
 from flask import jsonify
 from flask_jwt_extended import jwt_required

@@ -1,4 +1,8 @@
-﻿import os
+﻿# Archivo: aplicacion.py
+# Descripción: Punto de entrada principal e inicialización del servidor.
+# Módulo: Servicio Teleconsultas
+
+import os
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS

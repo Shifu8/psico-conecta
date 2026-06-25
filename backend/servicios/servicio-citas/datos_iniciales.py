@@ -1,3 +1,7 @@
+﻿# Archivo: datos_iniciales.py
+# Descripción: Poblado de datos iniciales para la base de datos.
+# Módulo: Servicio Citas
+
 from app import create_app, db
 from app.modelos.disponibilidad import Disponibilidad
 from app.modelos.cita import Cita

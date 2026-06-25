@@ -1,3 +1,7 @@
+﻿# Archivo: esquema_disponibilidad.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Citas
+
 from marshmallow import Schema, fields, validate, validates, ValidationError
 
 class DisponibilidadSchema(Schema):

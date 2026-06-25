@@ -1,3 +1,7 @@
+﻿# Archivo: servicio_captcha.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 import json
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen

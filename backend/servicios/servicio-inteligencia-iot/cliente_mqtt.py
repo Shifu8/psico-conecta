@@ -1,3 +1,7 @@
+﻿# Archivo: cliente_mqtt.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio IoT
+
 def conectar_aws_iot_core():
     """Conecta exclusivamente con AWS IoT Core cuando existan credenciales."""
     return None

@@ -1,3 +1,7 @@
+﻿# Archivo: test_autenticacion.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 import json
 from urllib.parse import parse_qs
 

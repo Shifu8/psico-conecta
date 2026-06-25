@@ -1,3 +1,7 @@
+﻿# Archivo: jwt.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 import hashlib
 import secrets
 

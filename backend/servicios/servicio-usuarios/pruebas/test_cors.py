@@ -1,3 +1,7 @@
+﻿# Archivo: test_cors.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 def test_api_agrega_cors_sin_origin(client):
     response = client.get("/api/usuarios/autenticacion/google/configuracion")
 

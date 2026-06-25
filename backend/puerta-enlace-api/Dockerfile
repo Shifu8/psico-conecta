@@ -1,3 +1,7 @@
+﻿# Archivo: Dockerfile
+# Descripción: Receta de construcción de contenedor Docker.
+# Módulo: Puerta de Enlace
+
 FROM python:3.11-slim
 WORKDIR /app
 COPY backend/requirements/ /requirements/

@@ -1,4 +1,8 @@
-﻿from flask import Blueprint, current_app, jsonify, request
+﻿# Archivo: autenticacion.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
+from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import get_jwt, jwt_required
 
 from aplicacion.extensiones import db

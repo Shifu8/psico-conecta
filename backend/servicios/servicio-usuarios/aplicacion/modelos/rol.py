@@ -1,3 +1,7 @@
+﻿# Archivo: rol.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 from aplicacion.extensiones import db
 from aplicacion.modelos.permiso import role_permissions
 from aplicacion.modelos.schema import obtener_schema

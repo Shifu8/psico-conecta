@@ -1,3 +1,7 @@
+﻿# Archivo: servicio_zoom.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Teleconsultas
+
 def obtener_token_acceso_zoom():
     """Obtiene un token cuando se configuren credenciales Zoom Server-to-Server."""
     return None

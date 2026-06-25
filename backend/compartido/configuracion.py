@@ -1,3 +1,7 @@
+﻿# Archivo: configuracion.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Proyecto General
+
 ESQUEMAS_POSTGRESQL = {
     "usuarios": "usuarios_schema",
     "citas": "citas_schema",

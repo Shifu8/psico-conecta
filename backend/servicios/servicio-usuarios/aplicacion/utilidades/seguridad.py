@@ -1,4 +1,8 @@
-﻿from aplicacion.extensiones import bcrypt
+﻿# Archivo: seguridad.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
+from aplicacion.extensiones import bcrypt
 
 
 def hash_password(password):

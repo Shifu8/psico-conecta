@@ -1,3 +1,7 @@
+﻿# Archivo: datos_iniciales.py
+# Descripción: Poblado de datos iniciales para la base de datos.
+# Módulo: Servicio Usuarios
+
 from aplicacion import create_app
 from aplicacion.extensiones import db
 from aplicacion.modelos import Permission, Role, User

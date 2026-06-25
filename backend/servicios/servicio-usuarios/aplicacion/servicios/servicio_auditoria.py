@@ -1,3 +1,7 @@
+# Archivo: servicio_auditoria.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 import json
 from collections import Counter, defaultdict
 from datetime import timedelta
@@ -7,6 +11,31 @@ from flask import current_app
 from aplicacion.extensiones import db
 from aplicacion.modelos import AuditEvent
 from aplicacion.utilidades.tiempo import utc_now
+
+
+MAPEO_EVENTOS = {
+    "login_success": {"accion": "Inicio de sesión local exitoso", "severidad": "Baja", "canal": "Web", "modulo": "Usuarios"},
+    "login_failed": {"accion": "Inicio de sesión local fallido", "severidad": "Media", "canal": "Web", "modulo": "Usuarios"},
+    "login_blocked": {"accion": "Bloqueo preventivo", "severidad": "Alta", "canal": "Web", "modulo": "Seguridad"},
+    "google_login_success": {"accion": "Inicio de sesión con Google exitoso", "severidad": "Baja", "canal": "Google OAuth", "modulo": "Usuarios"},
+    "google_login_failed": {"accion": "Inicio de sesión con Google fallido", "severidad": "Media", "canal": "Google OAuth", "modulo": "Usuarios"},
+    "google_register_success": {"accion": "Registro exitoso", "severidad": "Baja", "canal": "Google OAuth", "modulo": "Usuarios"},
+    "register_success": {"accion": "Registro exitoso", "severidad": "Baja", "canal": "Web", "modulo": "Usuarios"},
+    "register_failed": {"accion": "Registro fallido", "severidad": "Media", "canal": "Web", "modulo": "Usuarios"},
+    "password_reset_requested": {"accion": "Solicitud de recuperación de contraseña", "severidad": "Media", "canal": "Web", "modulo": "Usuarios"},
+    "password_reset_success": {"accion": "Restablecimiento de contraseña exitoso", "severidad": "Baja", "canal": "Web", "modulo": "Usuarios"},
+    "logout": {"accion": "Cierre de sesión", "severidad": "Baja", "canal": "Web", "modulo": "Usuarios"},
+    "admin_user_updated": {"accion": "Usuario actualizado", "severidad": "Baja", "canal": "Sistema", "modulo": "Usuarios"},
+    "admin_user_status_changed": {"accion": "Cambio de estado de usuario", "severidad": "Media", "canal": "Sistema", "modulo": "Usuarios"},
+    "admin_user_deactivated": {"accion": "Usuario eliminado", "severidad": "Alta", "canal": "Sistema", "modulo": "Usuarios"},
+    "turnstile_success": {"accion": "Validación Turnstile exitosa", "severidad": "Informativo", "canal": "Web", "modulo": "Seguridad"},
+    "turnstile_failed": {"accion": "Validación Turnstile fallida", "severidad": "Alta", "canal": "Web", "modulo": "Seguridad"},
+    "auth_failed": {"accion": "Token inválido o acceso sin auth", "severidad": "Media", "canal": "API", "modulo": "Autenticación"},
+    "access_denied": {"accion": "Acceso denegado por rol", "severidad": "Alta", "canal": "API", "modulo": "Autenticación"},
+    "server_error": {"accion": "Error interno del servidor", "severidad": "Crítica", "canal": "API", "modulo": "Sistema"},
+    "client_error": {"accion": "Petición de cliente inválida", "severidad": "Baja", "canal": "API", "modulo": "Sistema"},
+    "api_request": {"accion": "Petición API", "severidad": "Baja", "canal": "API", "modulo": "Sistema"},
+}
 
 
 def _ip_cliente(request_obj):
@@ -41,8 +70,36 @@ def registrar_evento_auditoria(
     target_email=None,
     detail=None,
     request_obj=None,
+    modulo=None,
+    rol=None,
+    metodo_http=None,
+    endpoint=None,
+    codigo_respuesta=None,
+    tiempo_respuesta_ms=None,
+    descripcion=None,
+    severidad=None,
+    canal=None,
+    accion=None,
 ):
     try:
+        mapeo = MAPEO_EVENTOS.get(event_type, {})
+        if not accion: accion = mapeo.get("accion", event_type)
+        if not severidad: severidad = mapeo.get("severidad", "Baja")
+        if not canal: canal = mapeo.get("canal", "API")
+        if not modulo: modulo = mapeo.get("modulo", "Sistema")
+
+        detail_dict = detail if isinstance(detail, dict) else ({"valor": detail} if detail else {})
+        if modulo: detail_dict["modulo"] = modulo
+        if rol: detail_dict["rol"] = rol
+        if metodo_http: detail_dict["metodo_http"] = metodo_http
+        if endpoint: detail_dict["endpoint"] = endpoint
+        if codigo_respuesta is not None: detail_dict["codigo_respuesta"] = codigo_respuesta
+        if tiempo_respuesta_ms is not None: detail_dict["tiempo_respuesta_ms"] = round(tiempo_respuesta_ms, 2)
+        if descripcion: detail_dict["descripcion"] = descripcion
+        if severidad: detail_dict["severidad"] = severidad
+        if canal: detail_dict["canal"] = canal
+        if accion: detail_dict["accion"] = accion
+
         event = AuditEvent(
             event_type=event_type,
             category=category,
@@ -53,7 +110,7 @@ def registrar_evento_auditoria(
             target_email=target_email or getattr(target, "email", None),
             ip_address=_ip_cliente(request_obj),
             user_agent=_user_agent(request_obj),
-            detail=_detalle_json(detail),
+            detail=_detalle_json(detail_dict) if detail_dict else None,
         )
         db.session.add(event)
         db.session.commit()

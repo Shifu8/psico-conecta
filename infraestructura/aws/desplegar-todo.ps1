@@ -1,3 +1,7 @@
+﻿# Archivo: desplegar-todo.ps1
+# Descripción: Script de automatización de tareas y despliegue.
+# Módulo: Infraestructura
+
 param(
     [string]$Region = "us-east-2",
     [string]$Cluster = "psicoconecta",

@@ -1,3 +1,7 @@
+﻿# Archivo: servicio_s3.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Proyecto General
+
 import os
 
 

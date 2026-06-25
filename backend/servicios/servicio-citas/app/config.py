@@ -1,3 +1,7 @@
+﻿# Archivo: config.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Citas
+
 import os
 
 class Config:

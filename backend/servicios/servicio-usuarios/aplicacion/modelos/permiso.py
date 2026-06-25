@@ -1,3 +1,7 @@
+﻿# Archivo: permiso.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 from aplicacion.extensiones import db
 from aplicacion.modelos.schema import obtener_schema, prefijo_schema
 

@@ -28,6 +28,7 @@ import { capturarEvento } from "../../servicios/analitica";
 import { obtenerConfiguracionGoogle } from "../../servicios/servicioAutenticacion";
 import { obtenerDatosOperativos, obtenerEstadoServicios } from "../../servicios/servicioModulos";
 import EncabezadoPanel from "./EncabezadoPanel";
+import TablaAuditoria from "../../componentes/admin/TablaAuditoria";
 
 const nombresRoles = { ADMIN: "Administrador", PSYCHOLOGIST: "Psicólogo", PATIENT: "Paciente" };
 const estadosUsuario = { active: "Activo", inactive: "Pausado" };
@@ -109,7 +110,7 @@ export default function PanelAdministrador() {
       obtenerDatosOperativos(),
       obtenerEstadoServicios(),
       obtenerConfiguracionGoogle(),
-      api.get("/api/usuarios/auditoria/resumen?dias=7&limite=8"),
+      api.get("/api/usuarios/auditoria/resumen?dias=7&limite=100"),
     ]);
 
     if (usuariosRes.status === "fulfilled") {
@@ -278,14 +279,7 @@ export default function PanelAdministrador() {
     { titulo: "Bienestar IoT", valor: emociones.length + lecturasIot.length, detalle: `${alertasBienestar} alertas`, icono: Activity },
   ];
 
-  const seguridad = [
-    { titulo: "Inicios exitosos", valor: metricasAuditoria.inicios_sesion || 0, detalle: "Últimos 7 días", icono: KeyRound },
-    { titulo: "Inicios fallidos", valor: metricasAuditoria.inicios_fallidos || 0, detalle: "Alertas de acceso", icono: ShieldAlert },
-    { titulo: "Registros", valor: metricasAuditoria.registros || 0, detalle: "Altas recientes", icono: UserPlus },
-    { titulo: "Cambios admin", valor: metricasAuditoria.cambios_administrativos || 0, detalle: "Control de usuarios", icono: FileClock },
-    { titulo: "Cuentas pausadas", valor: inactivos, detalle: "Bloqueo administrativo", icono: ShieldCheck },
-    { titulo: "Google OAuth", valor: googleOAuth?.habilitado ? "Activo" : "Sin configurar", detalle: "Inicio con Google", icono: KeyRound },
-  ];
+
 
   const citasOrdenadas = [...citas].sort((a, b) => new Date(fechaCita(a) || 0) - new Date(fechaCita(b) || 0)).slice(0, 5);
 
@@ -435,7 +429,7 @@ export default function PanelAdministrador() {
         />
       </section>
 
-      <section className="mt-6 grid gap-5 xl:grid-cols-[1.1fr_.9fr]">
+      <section className="mt-6 grid gap-5 xl:grid-cols-1">
         <article className="panel p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -462,58 +456,6 @@ export default function PanelAdministrador() {
             {citasOrdenadas.length === 0 && <p className="py-8 text-sm text-slate-400">Todavía no hay citas registradas.</p>}
           </div>
         </article>
-
-        <article className="panel p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="etiqueta">Seguridad</p>
-              <h2 className="mt-2 text-xl font-black text-slate-900 dark:text-white">Accesos y protección</h2>
-            </div>
-            <span className="icono-panel"><ShieldCheck size={22} /></span>
-          </div>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {seguridad.map((item) => <Dato key={item.titulo} {...item} />)}
-          </div>
-          <div className="mt-6 border-t border-slate-100 pt-5 dark:border-slate-800">
-            <div className="flex items-center justify-between gap-4">
-              <h3 className="text-sm font-black text-slate-900 dark:text-white">Tendencia de auditoría</h3>
-              <span className="text-xs font-bold text-slate-400">7 días</span>
-            </div>
-            <div className="mt-4 grid grid-cols-7 items-end gap-2">
-              {serieAuditoria.map((punto) => {
-                const total = punto.accesos + punto.fallos + punto.registros + punto.administracion;
-                const altura = Math.max(12, Math.round((total / maximoSerieAuditoria) * 88));
-                return (
-                  <div key={punto.fecha} className="flex flex-col items-center gap-2">
-                    <div className="flex h-24 w-full items-end justify-center rounded-xl bg-slate-50 px-1 dark:bg-slate-800/70">
-                      <div
-                        className="w-full max-w-5 rounded-t-lg bg-blue-600 dark:bg-blue-300"
-                        style={{ height: `${altura}px` }}
-                        title={`${total} eventos`}
-                      />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-400">{punto.fecha.slice(5)}</span>
-                  </div>
-                );
-              })}
-              {serieAuditoria.length === 0 && (
-                <p className="col-span-7 py-6 text-sm text-slate-400">Todavía no hay eventos de auditoría.</p>
-              )}
-            </div>
-          </div>
-          <div className="mt-6 border-t border-slate-100 pt-5 dark:border-slate-800">
-            <div className="flex items-center justify-between gap-4">
-              <h3 className="text-sm font-black text-slate-900 dark:text-white">Últimos eventos</h3>
-              <FileClock size={18} className="text-blue-600 dark:text-blue-300" />
-            </div>
-            <div className="mt-3 divide-y divide-slate-100 dark:divide-slate-800">
-              {eventosAuditoria.slice(0, 5).map((evento) => <EventoAuditoria key={evento.id} evento={evento} />)}
-              {eventosAuditoria.length === 0 && (
-                <p className="py-6 text-sm text-slate-400">Sin eventos recientes.</p>
-              )}
-            </div>
-          </div>
-        </article>
       </section>
 
       <section className="mt-6 grid gap-5 xl:grid-cols-3">
@@ -522,27 +464,9 @@ export default function PanelAdministrador() {
         <ModuloResumen icono={HeartPulse} titulo="IoT / bienestar" tono="rose" datos={[["Emociones", emociones.length], ["Lecturas hoy", lecturasHoy], ["Alertas", alertasBienestar], ["Lecturas", lecturasIot.length]]} />
       </section>
 
-      <section className="panel mt-6 p-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="etiqueta">Estado técnico</p>
-            <h2 className="mt-2 text-xl font-black text-slate-900 dark:text-white">Servicios conectados</h2>
-          </div>
-          <span className="icono-panel"><Server size={22} /></span>
-        </div>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {servicios.map((servicio) => (
-            <div key={servicio.clave} className="flex items-center justify-between rounded-2xl border border-slate-100 p-4 dark:border-slate-800">
-              <div>
-                <p className="font-black text-slate-900 dark:text-white">{servicio.nombre}</p>
-                <p className="mt-1 text-xs text-slate-400">{servicio.detalle}</p>
-              </div>
-              {servicio.estado === "ok" ? <CheckCircle2 size={20} className="text-emerald-500" /> : <XCircle size={20} className="text-red-500" />}
-            </div>
-          ))}
-          {servicios.length === 0 && <p className="text-sm text-slate-400">Estado técnico no disponible.</p>}
-        </div>
-      </section>
+
+
+      <TablaAuditoria serieDiaria={serieAuditoria} eventos={eventosAuditoria} />
 
       {editando && (
         <div className="fixed inset-0 z-40 grid place-items-center bg-slate-950/50 px-4 py-8 backdrop-blur-sm">
@@ -578,25 +502,6 @@ export default function PanelAdministrador() {
   );
 }
 
-function EventoAuditoria({ evento }) {
-  const fallido = evento.status === "failure";
-  const etiqueta = etiquetasEventos[evento.event_type] || evento.event_type;
-  const actor = evento.actor_email || evento.target_email || "Sistema";
-  return (
-    <div className="flex items-start justify-between gap-3 py-3 text-sm">
-      <div className="min-w-0">
-        <p className="font-black text-slate-800 dark:text-slate-100">{etiqueta}</p>
-        <p className="mt-1 truncate text-xs text-slate-400">{actor}</p>
-      </div>
-      <div className="shrink-0 text-right">
-        <span className={`rounded-full px-3 py-1 text-[11px] font-black ${fallido ? "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-200" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"}`}>
-          {fallido ? "Fallido" : "OK"}
-        </span>
-        <p className="mt-1 text-[11px] text-slate-400">{formatearFechaHora(evento.created_at)}</p>
-      </div>
-    </div>
-  );
-}
 
 function Dato({ titulo, valor, detalle, tono, icono: Icono }) {
   const clase = tono === "emerald" ? "bg-emerald-50 dark:bg-emerald-950/30" : "bg-slate-50 dark:bg-slate-800/70";

@@ -1,3 +1,7 @@
+﻿# Archivo: servicio_gmail.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 import base64
 from email.message import EmailMessage
 from urllib.parse import urlencode

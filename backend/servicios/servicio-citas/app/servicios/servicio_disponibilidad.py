@@ -1,3 +1,7 @@
+﻿# Archivo: servicio_disponibilidad.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Citas
+
 from app import db
 from app.modelos.disponibilidad import Disponibilidad, ExcepcionDisponibilidad
 from app.modelos.cita import Cita

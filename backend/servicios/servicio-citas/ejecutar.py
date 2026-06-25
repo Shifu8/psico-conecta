@@ -1,3 +1,7 @@
+﻿# Archivo: ejecutar.py
+# Descripción: Inicialización y ejecución del servidor de la API.
+# Módulo: Servicio Citas
+
 import os
 from app import create_app
 

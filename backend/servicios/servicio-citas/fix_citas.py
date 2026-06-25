@@ -1,3 +1,7 @@
+﻿# Archivo: fix_citas.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Citas
+
 from app import create_app, db
 from app.modelos.cita import Cita
 from datetime import timedelta

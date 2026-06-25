@@ -1,3 +1,7 @@
+# Archivo: evento_auditoria.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 import json
 
 from aplicacion.extensiones import db
@@ -33,6 +37,7 @@ class AuditEvent(db.Model):
             return {"valor": self.detail}
 
     def to_dict(self):
+        details = self.detail_dict()
         return {
             "id": self.id,
             "event_type": self.event_type,
@@ -44,6 +49,16 @@ class AuditEvent(db.Model):
             "target_email": self.target_email,
             "ip_address": self.ip_address,
             "user_agent": self.user_agent,
-            "detail": self.detail_dict(),
+            "detail": details,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            "modulo": details.get("modulo", "usuarios" if self.category in ["auth", "users", "admin"] else "sistema"),
+            "rol": details.get("rol"),
+            "metodo_http": details.get("metodo_http"),
+            "endpoint": details.get("endpoint"),
+            "codigo_respuesta": details.get("codigo_respuesta"),
+            "tiempo_respuesta_ms": details.get("tiempo_respuesta_ms"),
+            "descripcion": details.get("descripcion", ""),
+            "severidad": details.get("severidad"),
+            "canal": details.get("canal"),
+            "accion": details.get("accion"),
         }

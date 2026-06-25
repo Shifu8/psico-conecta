@@ -1,4 +1,8 @@
-﻿import os
+# Archivo: __init__.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
+import os
 
 from flask import Flask, jsonify, make_response, request
 from marshmallow import ValidationError
@@ -9,6 +13,7 @@ from aplicacion.extensiones import bcrypt, cors, db, jwt, migrate
 from aplicacion.modelos import TokenBlocklist
 from aplicacion.rutas import audit_bp, auth_bp, dashboard_bp, roles_bp, users_bp
 from aplicacion.utilidades.intentos_login import TooManyLoginAttemptsError
+from aplicacion.intermediarios.monitoreo_http import iniciar_monitoreo
 
 
 def create_app(test_config=None):
@@ -26,6 +31,8 @@ def create_app(test_config=None):
     jwt.init_app(app)
     bcrypt.init_app(app)
     cors.init_app(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
+    
+    iniciar_monitoreo(app)
 
     @app.before_request
     def responder_preflight_api():

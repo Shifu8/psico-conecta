@@ -1,3 +1,7 @@
+﻿# Archivo: servicio_google_login.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 from secrets import token_urlsafe
 
 from flask import current_app

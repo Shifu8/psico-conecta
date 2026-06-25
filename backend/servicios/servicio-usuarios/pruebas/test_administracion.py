@@ -1,3 +1,7 @@
+﻿# Archivo: test_administracion.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 from io import BytesIO
 
 def test_admin_lista_usuarios(client, admin_headers):

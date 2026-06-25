@@ -1,3 +1,7 @@
+﻿# Archivo: servicio_cognito.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 from urllib.parse import urlencode
 
 from flask import current_app

@@ -1,3 +1,7 @@
+﻿# Archivo: setup_google_credentials.py
+# Descripción: Configuración para credenciales de Google API.
+# Módulo: Servicio Usuarios
+
 """
 Script para configurar Gmail API y Google Login.
 Genera un enlace para autorizar y obtener el refresh token manualmente.

@@ -1,4 +1,8 @@
-﻿import sys
+﻿# Archivo: conftest.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
+import sys
 from pathlib import Path
 
 import pytest

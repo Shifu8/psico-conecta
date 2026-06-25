@@ -1,4 +1,8 @@
-﻿from aplicacion.extensiones import db
+﻿# Archivo: servicio_usuario.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
+from aplicacion.extensiones import db
 from aplicacion.modelos import Role
 from aplicacion.utilidades.validacion import normalize_phone, normalize_spaces
 

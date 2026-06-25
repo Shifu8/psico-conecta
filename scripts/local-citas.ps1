@@ -1,3 +1,7 @@
+﻿# Archivo: local-citas.ps1
+# Descripción: Script de automatización de tareas y despliegue.
+# Módulo: Scripts
+
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot

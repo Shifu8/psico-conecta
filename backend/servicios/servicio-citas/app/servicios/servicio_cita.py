@@ -1,3 +1,7 @@
+﻿# Archivo: servicio_cita.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Citas
+
 from app import db
 from app.modelos.cita import Cita
 from app.modelos.historial import HistorialCambioCita

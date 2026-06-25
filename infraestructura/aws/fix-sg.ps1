@@ -1,3 +1,7 @@
+﻿# Archivo: fix-sg.ps1
+# Descripción: Script de automatización de tareas y despliegue.
+# Módulo: Infraestructura
+
 param([string]$Region = "us-east-2")
 
 # Obtener SG del ALB (usado por los servicios ECS)

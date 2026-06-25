@@ -1,4 +1,9 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
+
+# Archivo: configurar-alb-usuarios.sh
+# Descripción: Script de automatización de tareas y despliegue.
+# Módulo: Infraestructura
+
 set -euo pipefail
 
 REGION="${REGION:-us-east-2}"

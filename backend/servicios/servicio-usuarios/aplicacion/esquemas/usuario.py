@@ -1,3 +1,7 @@
+﻿# Archivo: usuario.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 from marshmallow import Schema, fields, pre_load, validate
 
 from aplicacion.utilidades.validacion import (

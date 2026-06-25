@@ -1,3 +1,7 @@
+﻿# Archivo: __init__.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Citas
+
 from .autenticacion import requiere_rol
 from .helpers import generar_slots, parse_iso_datetime
 

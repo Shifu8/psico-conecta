@@ -1,3 +1,7 @@
+﻿# Archivo: aplicacion.py
+# Descripción: Punto de entrada principal e inicialización del servidor.
+# Módulo: Puerta de Enlace
+
 import os
 
 from flask import Flask, jsonify

@@ -1,3 +1,7 @@
+﻿# Archivo: usuarios.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 from pathlib import Path
 
 from flask import Blueprint, current_app, jsonify, request, send_file

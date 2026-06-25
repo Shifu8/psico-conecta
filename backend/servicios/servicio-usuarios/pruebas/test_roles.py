@@ -1,3 +1,7 @@
+﻿# Archivo: test_roles.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 def test_listar_roles(client, admin_headers):
     response = client.get("/api/usuarios/roles", headers=admin_headers)
     assert response.status_code == 200

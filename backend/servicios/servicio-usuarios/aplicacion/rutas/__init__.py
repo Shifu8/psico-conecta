@@ -1,3 +1,7 @@
+﻿# Archivo: __init__.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 from aplicacion.rutas.auditoria import audit_bp
 from aplicacion.rutas.autenticacion import auth_bp
 from aplicacion.rutas.paneles import dashboard_bp

@@ -1,3 +1,7 @@
+﻿# Archivo: tiempo.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 from datetime import UTC, datetime
 
 

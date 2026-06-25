@@ -1,4 +1,8 @@
-﻿from flask import Blueprint, jsonify, request
+﻿# Archivo: roles.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
+from flask import Blueprint, jsonify, request
 
 from aplicacion.extensiones import db
 from aplicacion.intermediarios.roles import role_required

@@ -1,3 +1,7 @@
+﻿# Archivo: __init__.py
+# Descripción: Módulo de lógica de negocio, rutas o configuración.
+# Módulo: Servicio Usuarios
+
 from aplicacion.modelos.evento_auditoria import AuditEvent
 from aplicacion.modelos.token_recuperacion import PasswordResetToken
 from aplicacion.modelos.permiso import Permission

@@ -1,3 +1,7 @@
+﻿# Archivo: local-backend.ps1
+# Descripción: Script de automatización de tareas y despliegue.
+# Módulo: Scripts
+
 param([switch]$Reset)
 
 $ErrorActionPreference = "Stop"
