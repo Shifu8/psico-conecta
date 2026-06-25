@@ -1,0 +1,76 @@
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [ "ECS/ContainerInsights", "CpuUtilized", "ClusterName", "psicoconecta", "ServiceName", "puerta-enlace" ],
+          [ ".", "CpuUtilized", ".", ".", "ServiceName", "usuarios" ],
+          [ ".", "CpuUtilized", ".", ".", "ServiceName", "iot" ]
+        ],
+        "region": "us-east-2",
+        "title": "CPU utilizada por servicio ECS",
+        "period": 300,
+        "stat": "Average"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [ "ECS/ContainerInsights", "MemoryUtilized", "ClusterName", "psicoconecta", "ServiceName", "puerta-enlace" ],
+          [ ".", "MemoryUtilized", ".", ".", "ServiceName", "usuarios" ],
+          [ ".", "MemoryUtilized", ".", ".", "ServiceName", "iot" ]
+        ],
+        "region": "us-east-2",
+        "title": "Memoria utilizada por servicio ECS",
+        "period": 300,
+        "stat": "Average"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 6,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [ "ECS/ContainerInsights", "NetworkRxBytes", "ClusterName", "psicoconecta", "ServiceName", "puerta-enlace" ],
+          [ ".", "NetworkRxBytes", ".", ".", "ServiceName", "usuarios" ],
+          [ ".", "NetworkRxBytes", ".", ".", "ServiceName", "iot" ]
+        ],
+        "region": "us-east-2",
+        "title": "Tr?fico de entrada por servicio ECS",
+        "period": 300,
+        "stat": "Average"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 6,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [ "ECS/ContainerInsights", "NetworkTxBytes", "ClusterName", "psicoconecta", "ServiceName", "puerta-enlace" ],
+          [ ".", "NetworkTxBytes", ".", ".", "ServiceName", "usuarios" ],
+          [ ".", "NetworkTxBytes", ".", ".", "ServiceName", "iot" ]
+        ],
+        "region": "us-east-2",
+        "title": "Tr?fico de salida por servicio ECS",
+        "period": 300,
+        "stat": "Average"
+      }
+    }
+  ]
+}
