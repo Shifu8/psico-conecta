@@ -39,7 +39,13 @@ export const resolverUrlFotoPerfil = (usuario) => {
   const url = usuario?.profile_photo_url;
   if (!url) return "";
   if (/^https?:\/\//i.test(url)) return url;
-  return `${API_BASE_URL}${url.startsWith("/") ? url : `/${url}`}`;
+  
+  let base = API_BASE_URL;
+  if (base.endsWith('/api') && url.startsWith('/api')) {
+    base = base.replace(/\/api$/, '');
+  }
+  
+  return `${base}${url.startsWith("/") ? url : `/${url}`}`;
 };
 
 export const googleLoginRequest = (credential) =>
