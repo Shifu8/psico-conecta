@@ -11,7 +11,7 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString();
 };
 
-const TarjetaCita = ({ cita, onClick, esPsicologo }) => {
+const TarjetaCita = ({ cita, onClick, esPsicologo, esAdmin }) => {
   return (
     <div 
       className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-shadow dark:bg-gray-800 dark:border-gray-700"
@@ -25,10 +25,22 @@ const TarjetaCita = ({ cita, onClick, esPsicologo }) => {
       </div>
       
       <div className="text-sm text-gray-600 dark:text-gray-300">
-        <p className="mb-1">
-          <span className="font-medium">{esPsicologo ? 'Paciente' : 'Profesional'}:</span>{' '}
-          {esPsicologo ? `ID: ${cita.paciente_id}` : (cita.nombrePsicologo || cita.psicologo_id)}
-        </p>
+        {!esAdmin && (
+          <p className="mb-1">
+            <span className="font-medium">{esPsicologo ? 'Paciente' : 'Profesional'}:</span>{' '}
+            {esPsicologo ? (cita.nombrePaciente || `ID: ${cita.paciente_id}`) : (cita.nombrePsicologo || cita.psicologo_id)}
+          </p>
+        )}
+        {esAdmin && (
+          <>
+            <p className="mb-1">
+              <span className="font-medium">Profesional:</span> {cita.nombrePsicologo || `ID: ${cita.psicologo_id}`}
+            </p>
+            <p className="mb-1">
+              <span className="font-medium">Paciente:</span> {cita.nombrePaciente || `ID: ${cita.paciente_id}`}
+            </p>
+          </>
+        )}
         <p>
           <span className="font-medium">Modalidad:</span> {cita.modalidad}
         </p>
