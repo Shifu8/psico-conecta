@@ -1,7 +1,14 @@
 import os
+import logging
+import time
+import requests
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
+
+# Configurar logging estructurado de auditoría
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logger = logging.getLogger("puerta-enlace-api")
 
 app = Flask(__name__)
 CORS(app)
@@ -14,14 +21,31 @@ SERVICIOS = {
     "inteligencia_iot": os.getenv("IOT_SERVICE_URL", "http://127.0.0.1:5005"),
 }
 
+@app.before_request
+def log_request_info():
+    request.start_time = time.time()
+    # Enmascarar token por seguridad
+    auth_header = request.headers.get("Authorization", "")
+    masked_auth = f"{auth_header[:15]}..." if len(auth_header) > 15 else "None"
+    logger.info(
+        f"[AUDITORÍA] Acceso entrante - IP: {request.remote_addr} - "
+        f"Método: {request.method} - Ruta: {request.path} - "
+        f"Auth: {masked_auth}"
+    )
+
+@app.after_request
+def log_response_info(response):
+    duration = time.time() - getattr(request, "start_time", time.time())
+    logger.info(
+        f"[AUDITORÍA] Respuesta enviada - IP: {request.remote_addr} - "
+        f"Ruta: {request.path} - Código: {response.status_code} - "
+        f"Duración: {duration:.4f}s"
+    )
+    return response
 
 @app.get("/health")
 def health():
     return jsonify(estado="ok", servicio="puerta-enlace-api")
-
-
-import requests
-from flask import request, Response
 
 @app.route("/api/servicios")
 def servicios():
