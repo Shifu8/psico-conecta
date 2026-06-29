@@ -13,8 +13,8 @@
 #include <WebSocketsClient.h> // Librería de Links2004/arduinoWebSockets o similar
 
 // ---- CONFIGURACIÓN DE RED Y SERVIDOR ----
-const char* WIFI_SSID = "TU_WIFI_SSID";
-const char* WIFI_PASS = "TU_WIFI_PASSWORD";
+const char* WIFI_SSID = "marinerito";
+const char* WIFI_PASS = "123456789";
 
 // Dirección y puerto de Nginx (reverse proxy de telemetría)
 const char* SERVER_HOST = "192.168.1.100"; // Cambiar por la IP local del servidor
