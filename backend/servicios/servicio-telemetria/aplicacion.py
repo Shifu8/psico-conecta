@@ -30,18 +30,31 @@ esp32_connections = {}
 # Buffer en memoria de lecturas de la ESP32: patient_id -> list of raw_values
 buffer_pacientes = {}
 
+# Mapeo global de identificadores a nombres de pacientes
+PACIENTES_MAP = {
+    "4": "Justin Gutiérrez"
+}
+
 def _save_to_dynamo_sync(patient_id, raw_values):
     if table is None:
         print(f"[!] DynamoDB no está disponible. Ignorando persistencia de lote para paciente {patient_id}.")
         return
     try:
         timestamp_iso = datetime.now(timezone.utc).isoformat()
+        now_local = datetime.now()
+        patient_name = PACIENTES_MAP.get(str(patient_id), "Desconocido")
+        hora_captura = now_local.strftime("%H:%M:%S")
+        fecha_local = now_local.strftime("%Y-%m-%d %H:%M:%S")
+        
         table.put_item(Item={
             "patient_id": patient_id,
             "timestamp": timestamp_iso,
+            "patient_name": patient_name,
+            "hora_captura": hora_captura,
+            "fecha_local": fecha_local,
             "raw_values": raw_values
         })
-        print(f"[Cloud] Persistido lote de {len(raw_values)} lecturas para paciente {patient_id} en DynamoDB.")
+        print(f"[Cloud] Persistido lote de {len(raw_values)} lecturas para paciente {patient_id} ({patient_name}) en DynamoDB.")
     except Exception as e:
         print(f"[!] Error al persistir lote en DynamoDB para paciente {patient_id}: {e}")
 
