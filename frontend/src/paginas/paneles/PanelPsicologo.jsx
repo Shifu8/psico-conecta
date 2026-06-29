@@ -14,6 +14,7 @@ import {
   Video,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import BarraProgreso from "../../componentes/BarraProgreso";
 import { usarAutenticacion } from "../../contexto/ContextoAutenticacion";
 import { obtenerDatosOperativos } from "../../servicios/servicioModulos";
@@ -217,7 +218,16 @@ export default function PanelPsicologo() {
                   <p className="text-sm text-slate-500 dark:text-slate-300">Última: {paciente.ultima}</p>
                   <p className="text-sm text-slate-500 dark:text-slate-300">Próxima: {paciente.proxima}</p>
                 </div>
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">{paciente.registros} registros</span>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">{paciente.registros} registros</span>
+                  <Link
+                    to={`/psicologo/telemetria/${paciente.id}`}
+                    title="Monitorear telemetría en tiempo real"
+                    className="flex items-center justify-center p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/60"
+                  >
+                    <Activity size={16} />
+                  </Link>
+                </div>
               </div>
             ))}
             {!cargando && pacientes.length === 0 && <Vacio texto="No hay pacientes asignados por citas todavía." />}

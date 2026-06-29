@@ -10,6 +10,7 @@ import RestablecerContrasena from "../paginas/autenticacion/RestablecerContrasen
 import PanelAdministrador from "../paginas/paneles/PanelAdministrador";
 import PanelPaciente from "../paginas/paneles/PanelPaciente";
 import PanelPsicologo from "../paginas/paneles/PanelPsicologo";
+import DashboardPsicologo from "../paginas/paneles/DashboardPsicologo";
 import PlantillaAutenticacion from "../plantillas/PlantillaAutenticacion";
 import PlantillaPanel from "../plantillas/PlantillaPanel";
 
@@ -43,6 +44,7 @@ export default function RutasAplicacion() {
           <Route element={<RutaRol roles={["PSYCHOLOGIST"]} />}>
             <Route path="/psicologo" element={<PanelPsicologo />} />
             <Route path="/psicologo/disponibilidad" element={<GestorDisponibilidad />} />
+            <Route path="/psicologo/telemetria/:patientId" element={<DashboardPsicologo />} />
           </Route>
           <Route element={<RutaRol roles={["PATIENT"]} />}>
             <Route path="/paciente" element={<PanelPaciente />} />
