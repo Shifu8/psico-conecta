@@ -5,6 +5,9 @@ import asyncio
 from datetime import datetime, timezone
 from urllib.parse import urlparse, parse_qs
 import boto3
+from dotenv import load_dotenv
+
+load_dotenv()
 
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change_this_jwt_secret_at_least_32_chars")
 DEVICE_TOKEN = os.getenv("DEVICE_TOKEN", "PsicoConectaSecureToken2026")
