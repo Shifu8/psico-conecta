@@ -2,15 +2,61 @@ import os
 import json
 import jwt
 import asyncio
+from datetime import datetime, timezone
 from urllib.parse import urlparse, parse_qs
+import boto3
 
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change_this_jwt_secret_at_least_32_chars")
 DEVICE_TOKEN = os.getenv("DEVICE_TOKEN", "PsicoConectaSecureToken2026")
+
+# Configuración AWS/DynamoDB
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+DYNAMODB_TABLE_NAME = os.getenv("DYNAMODB_TABLE_LECTURAS_IOT", "lecturas_iot")
+
+try:
+    dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
+    table = dynamodb.Table(DYNAMODB_TABLE_NAME)
+except Exception as e:
+    print(f"[!] Advertencia: Error inicializando DynamoDB: {e}")
+    table = None
 
 # Clientes web: patient_id -> set de websockets
 web_clients = {}
 # Conexiones ESP32: patient_id -> websocket
 esp32_connections = {}
+# Buffer en memoria de lecturas de la ESP32: patient_id -> list of raw_values
+buffer_pacientes = {}
+
+def _save_to_dynamo_sync(patient_id, raw_values):
+    if table is None:
+        print(f"[!] DynamoDB no está disponible. Ignorando persistencia de lote para paciente {patient_id}.")
+        return
+    try:
+        timestamp_iso = datetime.now(timezone.utc).isoformat()
+        table.put_item(Item={
+            "patient_id": patient_id,
+            "timestamp": timestamp_iso,
+            "raw_values": raw_values
+        })
+        print(f"[Cloud] Persistido lote de {len(raw_values)} lecturas para paciente {patient_id} en DynamoDB.")
+    except Exception as e:
+        print(f"[!] Error al persistir lote en DynamoDB para paciente {patient_id}: {e}")
+
+async def guardar_batch_dynamodb(patient_id, raw_values):
+    # Ejecutar en hilo secundario para evitar bloquear el event loop asíncrono
+    await asyncio.to_thread(_save_to_dynamo_sync, patient_id, raw_values)
+
+async def loop_limpieza_buffer():
+    print("[+] Iniciando bucle de limpieza y persistencia de buffers de telemetría...")
+    while True:
+        await asyncio.sleep(2.0)
+        # Recorrer de forma segura los buffers existentes
+        for p_id in list(buffer_pacientes.keys()):
+            if buffer_pacientes[p_id]:
+                # Extracción atómica para evitar colisiones
+                lote_a_guardar = list(buffer_pacientes[p_id])
+                buffer_pacientes[p_id].clear()
+                asyncio.create_task(guardar_batch_dynamodb(p_id, lote_a_guardar))
 
 async def registrar_cliente_web(patient_id, websocket):
     if patient_id not in web_clients:
@@ -91,6 +137,19 @@ async def handler(websocket, path):
                         await notificar_estado_esp32(patient_id, "connected")
                         
                     await retransmitir_datos(patient_id, data)
+                    
+                    # Persistencia en búfer para DynamoDB
+                    raw_value = data.get("raw_value")
+                    if raw_value is not None:
+                        if patient_id not in buffer_pacientes:
+                            buffer_pacientes[patient_id] = []
+                        buffer_pacientes[patient_id].append(int(raw_value))
+                        
+                        # Vaciado atómico al llegar a 100 elementos
+                        if len(buffer_pacientes[patient_id]) >= 100:
+                            lote_a_guardar = list(buffer_pacientes[patient_id])
+                            buffer_pacientes[patient_id].clear()
+                            asyncio.create_task(guardar_batch_dynamodb(patient_id, lote_a_guardar))
                 except json.JSONDecodeError:
                     pass
         except Exception as e:
