@@ -21,6 +21,132 @@ const formatearFechaHora = (valor) => {
   }).format(fecha);
 };
 
+const EXPLICACIONES_EVENTOS = {
+  "login_success": {
+    descripcion: "Un usuario ingresó correctamente al sistema usando sus credenciales de correo y contraseña.",
+    recomendacion: "Acceso autorizado de manera segura. No se requiere ninguna acción."
+  },
+  "login_failed": {
+    descripcion: "Se detectó un intento fallido de inicio de sesión. Alguien ingresó una contraseña incorrecta o un correo inexistente.",
+    recomendacion: "Monitorear si se repite continuamente desde la misma IP, lo cual podría indicar un ataque de fuerza bruta."
+  },
+  "login_blocked": {
+    descripcion: "El sistema bloqueó temporalmente los intentos de inicio de sesión desde esta dirección IP debido a múltiples fallos consecutivos para proteger la cuenta.",
+    recomendacion: "Alerta de seguridad media. Si la IP pertenece al usuario legítimo, deberá esperar unos minutos antes de reintentar."
+  },
+  "google_login_success": {
+    descripcion: "Un usuario inició sesión con éxito utilizando su cuenta verificada de Google OAuth.",
+    recomendacion: "Acceso correcto por Google OAuth. Todo en orden."
+  },
+  "google_login_failed": {
+    descripcion: "Se produjo un fallo en el inicio de sesión con Google OAuth, posiblemente debido a tokens expirados o permisos cancelados por el usuario.",
+    recomendacion: "Indicar al usuario que intente vincular nuevamente su cuenta de Google o use contraseña local."
+  },
+  "google_register_success": {
+    descripcion: "Se registró un nuevo usuario en la plataforma importando sus datos desde Google OAuth.",
+    recomendacion: "Nuevo usuario registrado. Todo en orden."
+  },
+  "register_success": {
+    descripcion: "Se registró un nuevo usuario de forma tradicional completando el formulario de registro.",
+    recomendacion: "Nuevo registro exitoso. Todo en orden."
+  },
+  "register_failed": {
+    descripcion: "Fallo al intentar registrar un usuario, por ejemplo por duplicado de correo electrónico o errores de validación de contraseña.",
+    recomendacion: "Verificar si hay campos faltantes en el formulario de registro del cliente."
+  },
+  "password_reset_requested": {
+    descripcion: "Un usuario solicitó el restablecimiento de su contraseña. Se envió un token de seguridad a su correo.",
+    recomendacion: "Monitorear solicitudes recurrentes desde el mismo correo para evitar spam."
+  },
+  "password_reset_success": {
+    descripcion: "Un usuario cambió su contraseña con éxito mediante el token temporal enviado por correo.",
+    recomendacion: "Contraseña actualizada de manera segura."
+  },
+  "logout": {
+    descripcion: "El usuario cerró sesión voluntariamente de la plataforma, destruyendo su token de acceso activo.",
+    recomendacion: "Sesión cerrada correctamente."
+  },
+  "admin_user_updated": {
+    descripcion: "Un administrador del sistema actualizó la información de perfil de un usuario.",
+    recomendacion: "Mantenimiento del sistema exitoso. Todo en orden."
+  },
+  "admin_user_status_changed": {
+    descripcion: "El estado de una cuenta (activo/pausado) fue modificado por un administrador del sistema.",
+    recomendacion: "Acción de gestión del sistema registrada correctamente."
+  },
+  "admin_user_deactivated": {
+    descripcion: "Un administrador eliminó o desactivó de forma permanente la cuenta de un usuario.",
+    recomendacion: "Mantenimiento del sistema exitoso."
+  },
+  "turnstile_success": {
+    descripcion: "El cliente completó exitosamente el CAPTCHA Cloudflare Turnstile, confirmando que es un usuario humano y no un bot.",
+    recomendacion: "Validación de seguridad exitosa. Tráfico humano legítimo."
+  },
+  "turnstile_failed": {
+    descripcion: "Se rechazó una validación de CAPTCHA Cloudflare Turnstile. La petición no completó la prueba de bot o el token era inválido.",
+    recomendacion: "Alerta de seguridad media. Bloqueo preventivo ante posible tráfico automatizado (bots)."
+  },
+  "auth_failed": {
+    descripcion: "Se intentó acceder a un recurso protegido con un token JWT inválido, expirado o ausente.",
+    recomendacion: "Indicar al cliente que vuelva a iniciar sesión para obtener un token nuevo."
+  },
+  "access_denied": {
+    descripcion: "Se denegó el acceso porque el rol del usuario no tiene los permisos suficientes para ver el recurso solicitado.",
+    recomendacion: "Verificar permisos de roles si el usuario reporta problemas de acceso legítimos."
+  },
+  "server_error": {
+    descripcion: "Ocurrió un error interno (500) inesperado en el servidor del microservicio.",
+    recomendacion: "CRÍTICO: Un error no controlado ocurrió. Inspeccione los registros detallados de AWS ECS / CloudWatch."
+  },
+  "client_error": {
+    descripcion: "El servidor rechazó la solicitud del cliente (4xx) debido a un formato incorrecto, datos no válidos o parámetros faltantes.",
+    recomendacion: "Revisar los parámetros de entrada enviados por la aplicación o el navegador."
+  },
+  "api_request": {
+    descripcion: "Una petición general a la API de backend fue procesada de manera exitosa.",
+    recomendacion: "Operación rutinaria del sistema."
+  }
+};
+
+const obtenerNombreActor = (evento) => {
+  if (evento.actor_email) return evento.actor_email;
+  const ip = evento.ip_address || "";
+  const esLocal = ip === "127.0.0.1" || ip === "::1" || ip.toLowerCase().includes("localhost") || ip.startsWith("192.168.") || ip.startsWith("10.");
+  if (esLocal) {
+    return "Desarrollador / Programador (Mantenimiento Local)";
+  }
+  if (evento.canal === "Sistema") {
+    return "Sistema Automatizado / Script de Tareas";
+  }
+  const tipo = evento.event_type || "";
+  if (tipo.includes("login") || tipo.includes("register") || tipo.includes("auth")) {
+    return "Visitante / Cliente (No autenticado)";
+  }
+  if (tipo.includes("turnstile")) {
+    return "Visitante (Verificación de Seguridad)";
+  }
+  return "Visitante (Público / Sin sesión)";
+};
+
+const obtenerExplicacion = (evento) => {
+  const tipo = evento.event_type || "";
+  const info = EXPLICACIONES_EVENTOS[tipo] || {};
+  
+  if (evento.status === 'failure' && evento.endpoint && (evento.endpoint.includes('/citas') || evento.endpoint.includes('/disponibilidad')) && evento.codigo_respuesta === 404) {
+    return {
+      descripcion: "Se recibió una solicitud para el módulo de citas, pero fue redirigida incorrectamente y respondió con error 404 en el módulo de usuarios. Esto ocurre porque el balanceador de carga de AWS (ALB) está enrutando las peticiones de citas (/api/citas/*) hacia el servicio de usuarios en lugar del microservicio de citas o el Gateway.",
+      recomendacion: "DIAGNÓSTICO CRÍTICO: Configurar el enrutamiento (Listener Rules) en el balanceador de carga de AWS (ALB) para dirigir correctamente el prefijo de ruta `/api/citas/*` al Target Group de citas en lugar del de usuarios."
+    };
+  }
+
+  const desc = info.descripcion || evento.descripcion || "Sin descripción detallada disponible en el controlador.";
+  const rec = info.recomendacion || (evento.status === 'success' 
+    ? "Operación exitosa. No se requiere ninguna acción por parte del administrador." 
+    : `Se detectó una falla con severidad ${evento.severidad || 'Baja'}. Revise las entradas del cliente o el estado del microservicio.`);
+
+  return { descripcion: desc, recomendacion: rec };
+};
+
 export default function TablaAuditoria({ serieDiaria, eventos, onRefresh }) {
   const [filtroUsuario, setFiltroUsuario] = useState("");
   const [filtroModulo, setFiltroModulo] = useState("");
@@ -304,7 +430,7 @@ export default function TablaAuditoria({ serieDiaria, eventos, onRefresh }) {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-blue-600 dark:text-blue-400 font-bold truncate max-w-[200px]">{evento.actor_email || "Anónimo"}</p>
+                    <p className="text-blue-600 dark:text-blue-400 font-bold truncate max-w-[200px]" title={obtenerNombreActor(evento)}>{obtenerNombreActor(evento)}</p>
                     {evento.rol && <p className="text-[10px] uppercase font-black text-slate-400 mt-1">{evento.rol}</p>}
                   </td>
                   <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">
@@ -341,53 +467,62 @@ export default function TablaAuditoria({ serieDiaria, eventos, onRefresh }) {
             
             <div className="p-6 overflow-y-auto space-y-6 flex-1">
               
-              <div className={`p-5 rounded-2xl border ${
-                eventoAnalisis.status === 'success'
-                  ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300'
-                  : 'bg-red-50 border-red-100 dark:bg-red-950/20 dark:border-red-900/50 text-red-800 dark:text-red-300'
-              }`}>
-                <p className={`text-xs font-black uppercase tracking-widest mb-2 flex items-center gap-2 ${
-                  eventoAnalisis.status === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
-                }`}>
-                  {eventoAnalisis.status === 'success' ? (
-                    <><CheckCircle size={14} /> Transacción Exitosa</>
-                  ) : (
-                    <><XOctagon size={14} /> Alerta de Falla</>
-                  )}
-                </p>
-                <p className="text-sm font-semibold">
-                  {eventoAnalisis.status === 'success' 
-                    ? "Recomendación: Todo opera correctamente. No se requiere acción técnica." 
-                    : `Recomendación: Se requiere revisión de severidad ${eventoAnalisis.severidad || 'Baja'}.`}
-                </p>
-                
-                <div className="mt-3 pt-3 border-t border-current/10 text-xs leading-relaxed opacity-90">
-                  <span className="font-bold">Análisis Técnico: </span>
-                  {eventoAnalisis.status === 'success' 
-                    ? "La petición fue recibida y procesada correctamente por el microservicio correspondiente, retornando un código de estado óptimo."
-                    : (eventoAnalisis.endpoint && (eventoAnalisis.endpoint.includes('/citas') || eventoAnalisis.endpoint.includes('/disponibilidad')) && eventoAnalisis.codigo_respuesta === 404)
-                    ? "DIAGNÓSTICO CRÍTICO: Se recibió una petición para citas, pero respondió con error 404 en el módulo de usuarios. Esto significa que el balanceador de carga de AWS (ALB) está dirigiendo por defecto las peticiones de citas (/api/citas/*) hacia el microservicio de usuarios (usuarios-tg) en lugar del Gateway o del microservicio de citas. Por lo tanto, el servicio de usuarios responde 404 (Ruta no encontrada). El actor es 'Anónimo' porque el cliente no está autenticado ni en sesión para este endpoint."
-                    : `La petición falló en el microservicio '${eventoAnalisis.modulo || 'Sistema'}' retornando código ${eventoAnalisis.codigo_respuesta || 'N/A'}. Puede deberse a parámetros inválidos, falta de autenticación o error de conexión.`}
-                </div>
-              </div>
+              {(() => {
+                const { descripcion: expDesc, recomendacion: expRec } = obtenerExplicacion(eventoAnalisis);
+                return (
+                  <>
+                    <div className={`p-5 rounded-2xl border ${
+                      eventoAnalisis.status === 'success'
+                        ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300'
+                        : 'bg-red-50 border-red-100 dark:bg-red-950/20 dark:border-red-900/50 text-red-800 dark:text-red-300'
+                    }`}>
+                      <p className={`text-xs font-black uppercase tracking-widest mb-2 flex items-center gap-2 ${
+                        eventoAnalisis.status === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {eventoAnalisis.status === 'success' ? (
+                          <><CheckCircle size={14} /> Transacción Exitosa</>
+                        ) : (
+                          <><XOctagon size={14} /> Alerta de Falla</>
+                        )}
+                      </p>
+                      <p className="text-sm font-semibold">
+                        {expRec}
+                      </p>
+                      
+                      <div className="mt-3 pt-3 border-t border-current/10 text-xs leading-relaxed opacity-90">
+                        <span className="font-bold">Análisis Técnico: </span>
+                        {eventoAnalisis.status === 'success' 
+                          ? "La petición fue recibida y procesada correctamente por el microservicio correspondiente, retornando un código de estado óptimo."
+                          : (eventoAnalisis.endpoint && (eventoAnalisis.endpoint.includes('/citas') || eventoAnalisis.endpoint.includes('/disponibilidad')) && eventoAnalisis.codigo_respuesta === 404)
+                          ? "DIAGNÓSTICO CRÍTICO: Se recibió una petición para citas, pero respondió con error 404 en el módulo de usuarios. Esto significa que el balanceador de carga de AWS (ALB) está dirigiendo por defecto las peticiones de citas (/api/citas/*) hacia el microservicio de usuarios (usuarios-tg) en lugar del Gateway o del microservicio de citas. Por lo tanto, el servicio de usuarios responde 404 (Ruta no encontrada). El actor es 'Anónimo' porque el cliente no está autenticado ni en sesión para este endpoint."
+                          : `La petición falló en el microservicio '${eventoAnalisis.modulo || 'Sistema'}' retornando código ${eventoAnalisis.codigo_respuesta || 'N/A'}. Puede deberse a parámetros inválidos, falta de autenticación o error de conexión.`}
+                      </div>
+                    </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Endpoint API</p>
-                  <p className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300 mt-2 truncate" title={eventoAnalisis.endpoint}>{eventoAnalisis.endpoint || 'N/A'}</p>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Código HTTP</p>
-                  <p className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300 mt-2">{eventoAnalisis.codigo_respuesta || 'N/A'}</p>
-                </div>
-              </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Endpoint API</p>
+                        <p className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300 mt-2 truncate" title={eventoAnalisis.endpoint || 'N/A'}>
+                          {eventoAnalisis.endpoint || 'N/A (Acción interna)'}
+                        </p>
+                      </div>
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Código HTTP</p>
+                        <p className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300 mt-2">
+                          {eventoAnalisis.codigo_respuesta || 'N/A (Sin llamada HTTP)'}
+                        </p>
+                      </div>
+                    </div>
 
-              <div className="space-y-3">
-                <h4 className="font-black text-sm uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2">Descripción del Evento</h4>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/30 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                  {eventoAnalisis.descripcion || "Sin descripción proporcionada por el controlador."}
-                </p>
-              </div>
+                    <div className="space-y-3">
+                      <h4 className="font-black text-sm uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2">Descripción del Evento</h4>
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/30 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        {expDesc}
+                      </p>
+                    </div>
+                  </>
+                );
+              })()}
 
               <div className="space-y-3">
                 <h4 className="font-black text-sm uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2">Entorno del Cliente</h4>
