@@ -56,19 +56,20 @@ def iniciar_monitoreo(app):
         elif "auth" in request.path: modulo = "auth"
         elif "usuarios" in request.path: modulo = "usuarios"
         
-        # Guardar en DB. Como esto es para demostración, la latencia adicional es aceptable.
-        registrar_evento_auditoria(
-            event_type=event_type,
-            category=category,
-            status=status,
-            actor_email=actor_email,
-            request_obj=request,
-            modulo=modulo,
-            rol=rol,
-            metodo_http=request.method,
-            endpoint=request.path,
-            codigo_respuesta=response.status_code,
-            tiempo_respuesta_ms=tiempo_ms,
-            descripcion=f"Acceso a {request.path} finalizado con {response.status_code}."
-        )
+        # Guardar en DB únicamente eventos importantes (evitar saturación de api_request y client_error)
+        if event_type not in ["api_request", "client_error"]:
+            registrar_evento_auditoria(
+                event_type=event_type,
+                category=category,
+                status=status,
+                actor_email=actor_email,
+                request_obj=request,
+                modulo=modulo,
+                rol=rol,
+                metodo_http=request.method,
+                endpoint=request.path,
+                codigo_respuesta=response.status_code,
+                tiempo_respuesta_ms=tiempo_ms,
+                descripcion=f"Acceso a {request.path} finalizado con {response.status_code}."
+            )
         return response

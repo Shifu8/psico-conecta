@@ -118,14 +118,7 @@ const obtenerNombreActor = (evento) => {
   if (evento.canal === "Sistema") {
     return "Sistema Automatizado / Script de Tareas";
   }
-  const tipo = evento.event_type || "";
-  if (tipo.includes("login") || tipo.includes("register") || tipo.includes("auth")) {
-    return "Visitante / Cliente (No autenticado)";
-  }
-  if (tipo.includes("turnstile")) {
-    return "Visitante (Verificación de Seguridad)";
-  }
-  return "Visitante (Público / Sin sesión)";
+  return "Anónimo";
 };
 
 const obtenerExplicacion = (evento) => {
@@ -167,6 +160,10 @@ export default function TablaAuditoria({ serieDiaria, eventos, onRefresh }) {
   const eventosFiltrados = useMemo(() => {
     if (!eventos) return [];
     return eventos.filter(evento => {
+      // Omitir peticiones de API rutinarias y errores de cliente generales del HTTP middleware
+      if (evento.event_type === "api_request" || evento.event_type === "client_error") {
+        return false;
+      }
       const cumpleUsuario = !filtroUsuario || (evento.actor_email || "").toLowerCase().includes(filtroUsuario.toLowerCase());
       const cumpleModulo = !filtroModulo || evento.modulo === filtroModulo;
       const cumpleEstado = !filtroEstado || evento.status === filtroEstado;
