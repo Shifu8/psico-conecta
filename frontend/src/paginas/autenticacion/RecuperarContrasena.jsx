@@ -46,7 +46,7 @@ export default function RecuperarContrasena() {
     setProcesando(true);
     try {
       const { data } = await solicitarRecuperacion(correo, captchaToken);
-      if (data.correo_enviado === false && !data.reset_token) {
+      if (data.correo_enviado === false) {
         setError("No pudimos enviar el correo en este momento. Intenta nuevamente mas tarde.");
         reiniciarCaptcha();
         return;
