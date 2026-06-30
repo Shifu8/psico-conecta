@@ -54,10 +54,12 @@ aws rds start-db-instance --db-instance-identifier psicoconecta-postgres --regio
 aws rds wait db-instance-available --db-instance-identifier psicoconecta-postgres --region us-east-2
 ```
 
-Restaura el website del bucket frontend:
+Restaura el website del bucket frontend (en PowerShell, se usa un archivo temporal para evitar errores de codificación/escape del JSON):
 
 ```powershell
-aws s3api put-bucket-website --bucket psicoconecta-frontend-060899556466 --region us-east-2 --website-configuration '{"IndexDocument":{"Suffix":"index.html"},"ErrorDocument":{"Key":"index.html"}}'
+'{"IndexDocument":{"Suffix":"index.html"},"ErrorDocument":{"Key":"index.html"}}' | Set-Content -Path website.json -Encoding ascii
+aws s3api put-bucket-website --bucket psicoconecta-frontend-060899556466 --region us-east-2 --website-configuration file://website.json
+Remove-Item website.json
 ```
 
 Reactiva CloudFront:
