@@ -7,7 +7,7 @@ from aplicacion import handler, loop_limpieza_buffer
 load_dotenv()
 
 async def main():
-    port = int(os.getenv("PORT", "5006"))
+    port = int(os.getenv("PORT_TELEMETRIA", "5006"))
     print(f"[+] Iniciando servidor de telemetría asíncrono en el puerto {port}...")
     
     # Iniciar bucle de persistencia de fondo para DynamoDB

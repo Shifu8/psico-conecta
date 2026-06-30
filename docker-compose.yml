@@ -112,9 +112,13 @@ services:
       - ./backend:/backend:ro
     env_file:
       - ./.env.example
-    command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
+    environment:
+      JWT_SECRET_KEY: change_this_jwt_secret_at_least_32_chars
+      DEVICE_TOKEN: esp32_secret_device_token_2026
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py & python telemetria/ejecutar.py"
     ports:
       - "5005:5005"
+      - "5006:5006"
     depends_on:
       postgres:
         condition: service_healthy
@@ -137,18 +141,6 @@ services:
       - servicio-usuarios
       - servicio-citas
 
-  servicio-telemetria:
-    build:
-      context: .
-      dockerfile: backend/servicios/servicio-telemetria/Dockerfile
-    container_name: psicoconecta-telemetria
-    environment:
-      PORT: 5006
-      JWT_SECRET_KEY: change_this_jwt_secret_at_least_32_chars
-      DEVICE_TOKEN: esp32_secret_device_token_2026
-    ports:
-      - "5006:5006"
-
   nginx:
     image: nginx:alpine
     container_name: psicoconecta-nginx
@@ -158,7 +150,7 @@ services:
       - "8080:80"
     depends_on:
       - puerta-enlace-api
-      - servicio-telemetria
+      - servicio-inteligencia-iot
 
 volumes:
   postgres_data:
