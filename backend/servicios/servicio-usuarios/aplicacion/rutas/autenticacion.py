@@ -49,7 +49,19 @@ def register():
             data["first_name"],
             data["last_name"],
         )
-    user = register_user(data)
+    try:
+        user = register_user(data)
+    except ValueError as error:
+        registrar_evento_auditoria(
+            "register_failed",
+            "autenticacion",
+            status="failure",
+            actor_email=data["email"].strip().lower(),
+            request_obj=request,
+            detail={"motivo": str(error)},
+            descripcion=f"Registro fallido para el correo {data['email']}: {str(error)}"
+        )
+        raise
     if cognito_response:
         user.cognito_sub = cognito_response.get("UserSub")
         db.session.commit()
@@ -166,7 +178,26 @@ def forgot_password():
 @auth_bp.post("/restablecer-contrasena")
 def reset_password_route():
     data = ResetPasswordSchema().load(request.get_json(silent=True) or {})
-    reset_password(data["token"], data["password"])
+    try:
+        user = reset_password(data["token"], data["password"])
+        registrar_evento_auditoria(
+            "password_reset_success",
+            "autenticacion",
+            actor=user,
+            request_obj=request,
+            detail={"resultado": "exito"},
+            descripcion=f"Contraseña restablecida exitosamente para el usuario: {user.email}."
+        )
+    except ValueError as error:
+        registrar_evento_auditoria(
+            "password_reset_success",
+            "autenticacion",
+            status="failure",
+            request_obj=request,
+            detail={"motivo": str(error)},
+            descripcion=f"Fallo al restablecer contraseña: {str(error)}"
+        )
+        raise
     return jsonify(message="Contraseña actualizada correctamente.")
 
 
