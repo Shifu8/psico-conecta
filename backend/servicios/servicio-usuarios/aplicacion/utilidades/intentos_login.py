@@ -13,11 +13,10 @@ _LOCK = Lock()
 
 
 class TooManyLoginAttemptsError(Exception):
-    def __init__(self, retry_after):
+    def __init__(self, retry_after, message=None):
         self.retry_after = retry_after
-        super().__init__(
-            "Demasiados intentos fallidos. Tu cuenta ha sido bloqueada por 24 horas. Vuelve mañana."
-        )
+        self.message = message or "Demasiados intentos fallidos. Intenta nuevamente más tarde."
+        super().__init__(self.message)
 
 
 def _key(ip_address, email):
@@ -31,41 +30,45 @@ def _config():
     )
 
 
-def _active_attempts(store, key, now, window):
-    attempts = [
-        timestamp for timestamp in store.get(key, []) if now - timestamp < window
-    ]
-    if attempts:
-        store[key] = attempts
-    else:
-        store.pop(key, None)
-    return attempts
-
-
 def ensure_login_allowed(ip_address, email):
-    max_attempts, window = _config()
-    key = _key(ip_address, email)
-    now = time()
-    with _LOCK:
-        attempts = _active_attempts(
-            current_app.extensions.setdefault("login_attempts", {}),
-            key,
-            now,
-            window,
-        )
-        if len(attempts) >= max_attempts:
-            raise TooManyLoginAttemptsError(
-                max(1, ceil(window - (now - attempts[0])))
-            )
-
-
-def register_failed_login(ip_address, email):
-    _, window = _config()
     key = _key(ip_address, email)
     now = time()
     with _LOCK:
         store = current_app.extensions.setdefault("login_attempts", {})
-        attempts = _active_attempts(store, key, now, window)
+        # Limpiar intentos anteriores a 10 minutos (600 segundos)
+        attempts = [t for t in store.get(key, []) if now - t < 600]
+        if attempts:
+            store[key] = attempts
+        else:
+            store.pop(key, None)
+            return
+
+        num_fallos = len(attempts)
+        if num_fallos == 2:
+            ultimo = attempts[-1]
+            if now - ultimo < 120:
+                restante = ceil(120 - (now - ultimo))
+                raise TooManyLoginAttemptsError(
+                    restante,
+                    f"Tu cuenta ha sido bloqueada temporalmente por seguridad. Podrás intentar de nuevo en {restante} segundos."
+                )
+        elif num_fallos >= 3:
+            ultimo = attempts[-1]
+            if now - ultimo < 600:
+                restante = ceil(600 - (now - ultimo))
+                minutos = ceil(restante / 60)
+                raise TooManyLoginAttemptsError(
+                    restante,
+                    f"Tu cuenta ha sido bloqueada por 10 minutos por seguridad. Podrás intentar de nuevo en {minutos} minutos."
+                )
+
+
+def register_failed_login(ip_address, email):
+    key = _key(ip_address, email)
+    now = time()
+    with _LOCK:
+        store = current_app.extensions.setdefault("login_attempts", {})
+        attempts = [t for t in store.get(key, []) if now - t < 600]
         attempts.append(now)
         store[key] = attempts
 

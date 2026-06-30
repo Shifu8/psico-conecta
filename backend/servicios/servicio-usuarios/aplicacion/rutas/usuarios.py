@@ -77,7 +77,7 @@ def list_users():
             if k.endswith(email_suffix):
                 intentos = max(intentos, len(attempts))
         u_dict["intentos_fallidos"] = intentos
-        u_dict["bloqueado"] = intentos >= max_attempts
+        u_dict["bloqueado"] = intentos >= 2
         users_list.append(u_dict)
         
     return jsonify(users=users_list)
