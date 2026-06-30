@@ -194,6 +194,7 @@ Despues de ejecutar `datos_iniciales.py`, puedes entrar con:
 | --- | --- | --- |
 | ADMIN | `admin@psicoconecta.com` | `Admin123*` |
 | PSYCHOLOGIST | `psicologo@psicoconecta.com` | `Psicologo123*` |
+| PSYCHOLOGIST | `laura@psicoconecta.com` | `Psicologo123*` |
 | PATIENT | `paciente@psicoconecta.com` | `Paciente123*` |
 
 Estas cuentas son solo para desarrollo local.
