@@ -329,7 +329,9 @@ export default function TablaAuditoria({ serieDiaria, eventos, onRefresh }) {
       {eventoAnalisis && (
         <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/40 backdrop-blur-sm transition-all">
           <div className="w-full max-w-lg bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col animate-in slide-in-from-right border-l border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+            <div className={`flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 border-t-4 ${
+              eventoAnalisis.status === 'success' ? 'border-t-emerald-500' : 'border-t-red-500'
+            }`}>
               <div>
                 <h3 className="text-xl font-black flex items-center gap-2 dark:text-white"><FileJson className="text-blue-500"/> Ficha Técnica</h3>
                 <p className="text-xs text-slate-500 mt-1">Ref ID: {eventoAnalisis.id} • {formatearFechaHora(eventoAnalisis.created_at)}</p>
@@ -339,14 +341,34 @@ export default function TablaAuditoria({ serieDiaria, eventos, onRefresh }) {
             
             <div className="p-6 overflow-y-auto space-y-6 flex-1">
               
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-5 rounded-2xl border border-blue-100 dark:border-blue-800/50">
-                <p className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-2 flex items-center gap-2"><Info size={14}/> Recomendación</p>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {eventoAnalisis.status === 'success' 
-                    ? "Evento finalizado correctamente. No se requiere intervención técnica."
-                    : eventoAnalisis.severidad === 'Crítica' ? "URGENTE: Fallo grave en el servidor. Inspeccione inmediatamente los logs de backend."
-                    : "Advertencia: El usuario experimentó un fallo controlable. Considere monitorear reincidencias desde la misma IP."}
+              <div className={`p-5 rounded-2xl border ${
+                eventoAnalisis.status === 'success'
+                  ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300'
+                  : 'bg-red-50 border-red-100 dark:bg-red-950/20 dark:border-red-900/50 text-red-800 dark:text-red-300'
+              }`}>
+                <p className={`text-xs font-black uppercase tracking-widest mb-2 flex items-center gap-2 ${
+                  eventoAnalisis.status === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                }`}>
+                  {eventoAnalisis.status === 'success' ? (
+                    <><CheckCircle size={14} /> Transacción Exitosa</>
+                  ) : (
+                    <><XOctagon size={14} /> Alerta de Falla</>
+                  )}
                 </p>
+                <p className="text-sm font-semibold">
+                  {eventoAnalisis.status === 'success' 
+                    ? "Recomendación: Todo opera correctamente. No se requiere acción técnica." 
+                    : `Recomendación: Se requiere revisión de severidad ${eventoAnalisis.severidad || 'Baja'}.`}
+                </p>
+                
+                <div className="mt-3 pt-3 border-t border-current/10 text-xs leading-relaxed opacity-90">
+                  <span className="font-bold">Análisis Técnico: </span>
+                  {eventoAnalisis.status === 'success' 
+                    ? "La petición fue recibida y procesada correctamente por el microservicio correspondiente, retornando un código de estado óptimo."
+                    : (eventoAnalisis.endpoint && (eventoAnalisis.endpoint.includes('/citas') || eventoAnalisis.endpoint.includes('/disponibilidad')) && eventoAnalisis.codigo_respuesta === 404)
+                    ? "DIAGNÓSTICO CRÍTICO: Se recibió una petición para citas, pero respondió con error 404 en el módulo de usuarios. Esto significa que el balanceador de carga de AWS (ALB) está dirigiendo por defecto las peticiones de citas (/api/citas/*) hacia el microservicio de usuarios (usuarios-tg) en lugar del Gateway o del microservicio de citas. Por lo tanto, el servicio de usuarios responde 404 (Ruta no encontrada). El actor es 'Anónimo' porque el cliente no está autenticado ni en sesión para este endpoint."
+                    : `La petición falló en el microservicio '${eventoAnalisis.modulo || 'Sistema'}' retornando código ${eventoAnalisis.codigo_respuesta || 'N/A'}. Puede deberse a parámetros inválidos, falta de autenticación o error de conexión.`}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
