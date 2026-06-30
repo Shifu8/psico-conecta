@@ -466,7 +466,7 @@ export default function PanelAdministrador() {
 
 
 
-      <TablaAuditoria serieDiaria={serieAuditoria} eventos={eventosAuditoria} />
+      <TablaAuditoria serieDiaria={serieAuditoria} eventos={eventosAuditoria} onRefresh={cargarDatos} />
 
       {editando && (
         <div className="fixed inset-0 z-40 grid place-items-center bg-slate-950/50 px-4 py-8 backdrop-blur-sm">

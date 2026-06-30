@@ -3,7 +3,7 @@
 // Módulo: Frontend
 
 import { useState, useMemo } from "react";
-import { Download, ExternalLink, Filter, Info, Search, XCircle, Activity, FileJson, FileText, CheckCircle, XOctagon } from "lucide-react";
+import { Download, ExternalLink, Filter, Info, Search, XCircle, Activity, FileJson, FileText, CheckCircle, XOctagon, RefreshCw } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis, PieChart, Pie, Cell } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -21,11 +21,22 @@ const formatearFechaHora = (valor) => {
   }).format(fecha);
 };
 
-export default function TablaAuditoria({ serieDiaria, eventos }) {
+export default function TablaAuditoria({ serieDiaria, eventos, onRefresh }) {
   const [filtroUsuario, setFiltroUsuario] = useState("");
   const [filtroModulo, setFiltroModulo] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
   const [eventoAnalisis, setEventoAnalisis] = useState(null);
+  const [refrescando, setRefrescando] = useState(false);
+
+  const ejecutarRefrescar = async () => {
+    if (!onRefresh) return;
+    setRefrescando(true);
+    try {
+      await onRefresh();
+    } finally {
+      setRefrescando(false);
+    }
+  };
 
   const eventosFiltrados = useMemo(() => {
     if (!eventos) return [];
@@ -136,6 +147,16 @@ export default function TablaAuditoria({ serieDiaria, eventos }) {
         </div>
 
         <div className="flex flex-wrap gap-3">
+          {onRefresh && (
+            <button 
+              onClick={ejecutarRefrescar} 
+              disabled={refrescando}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/60 text-white px-5 py-2.5 rounded-2xl text-sm font-bold transition shadow-sm disabled:cursor-not-allowed"
+            >
+              <RefreshCw size={16} className={refrescando ? "animate-spin" : ""} />
+              {refrescando ? "Refrescando..." : "Refrescar"}
+            </button>
+          )}
           <button onClick={descargarExcel} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-2xl text-sm font-bold transition shadow-sm">
             <FileText size={16} /> Excel
           </button>
