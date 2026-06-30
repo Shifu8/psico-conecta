@@ -30,6 +30,8 @@ export default function InicioSesion() {
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [googleError, setGoogleError] = useState("");
   const [mostrarPassword, setMostrarPassword] = useState(false);
+  const [bloqueoHasta, setBloqueoHasta] = useState(0);
+  const [dummyTock, setDummyTock] = useState(0);
   const { entrar, googleLogin } = usarAutenticacion();
   const navegar = useNavigate();
   const ubicacion = useLocation();
@@ -51,11 +53,44 @@ export default function InicioSesion() {
     });
   };
 
+  const segundosRestantes = Math.max(0, Math.ceil((bloqueoHasta - Date.now()) / 1000));
+
+  useEffect(() => {
+    const lock = localStorage.getItem("psicoconecta_login_lock");
+    if (lock) {
+      const lockVal = parseInt(lock, 10);
+      if (lockVal > Date.now()) {
+        setBloqueoHasta(lockVal);
+      } else {
+        localStorage.removeItem("psicoconecta_login_lock");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (bloqueoHasta <= Date.now()) return;
+    const intervalo = setInterval(() => {
+      const ahora = Date.now();
+      if (ahora >= bloqueoHasta) {
+        setBloqueoHasta(0);
+        localStorage.removeItem("psicoconecta_login_lock");
+        clearInterval(intervalo);
+      } else {
+        setDummyTock((d) => d + 1);
+      }
+    }, 1000);
+    return () => clearInterval(intervalo);
+  }, [bloqueoHasta]);
+
   const erroresFormulario = validarFormulario(formulario);
 
   const enviar = async (evento) => {
     evento.preventDefault();
     if (procesando) return;
+    if (segundosRestantes > 0) {
+      setError("Botón bloqueado temporalmente por seguridad.");
+      return;
+    }
     const credenciales = {
       ...formulario,
       email: normalizarCorreo(formulario.email),
@@ -81,8 +116,22 @@ export default function InicioSesion() {
       const usuario = await entrar(credenciales);
       navegarDespuesDeEntrar(usuario);
     } catch (excepcion) {
-      setError(obtenerMensajeApi(excepcion, "No fue posible iniciar sesión."));
+      const errorMsg = obtenerMensajeApi(excepcion, "No fue posible iniciar sesión.");
+      setError(errorMsg);
       reiniciarCaptcha();
+
+      const retryAfter = excepcion.response?.data?.retry_after;
+      if (retryAfter && retryAfter > 0) {
+        const hasta = Date.now() + retryAfter * 1000;
+        setBloqueoHasta(hasta);
+        localStorage.setItem("psicoconecta_login_lock", hasta.toString());
+      } else if (excepcion.response?.status === 429) {
+        const retryHeader = excepcion.response.headers?.["retry-after"];
+        const retrySecs = retryHeader ? parseInt(retryHeader, 10) : 600;
+        const hasta = Date.now() + retrySecs * 1000;
+        setBloqueoHasta(hasta);
+        localStorage.setItem("psicoconecta_login_lock", hasta.toString());
+      }
     } finally {
       setProcesando(false);
     }
@@ -168,9 +217,13 @@ export default function InicioSesion() {
             Olvidé mi contraseña
           </Link>
         </div>
-        <button type="submit" className="boton-primario w-full" disabled={procesando}>
+        <button type="submit" className="boton-primario w-full" disabled={procesando || segundosRestantes > 0}>
           <LogIn size={18} />
-          {procesando ? "Ingresando..." : "Ingresar"}
+          {procesando
+            ? "Ingresando..."
+            : segundosRestantes > 0
+            ? `Reintentar en ${segundosRestantes}s`
+            : "Ingresar"}
         </button>
       </form>
 

@@ -104,17 +104,20 @@ def login():
         with _LOCK:
             attempts = list(current_app.extensions.get("login_attempts", {}).get(key, []))
         num_intento = len(attempts)
-        restantes = max_attempts - num_intento
-        if restantes > 0:
-            if restantes == 2:
-                mensaje_user = "Correo o contraseña incorrectos. Te quedan 2 intentos restantes."
-            else:
-                mensaje_user = f"Correo o contraseña incorrectos. Te queda {restantes} intento restante antes de bloquear la cuenta."
+        retry_after = 0
+        if num_intento == 1:
+            mensaje_user = "Correo o contraseña incorrectos. Por seguridad se hace esto, te quedan 2 intentos restantes."
+        elif num_intento == 2:
+            mensaje_user = "Correo o contraseña incorrectos. Tu cuenta ha sido bloqueada temporalmente por seguridad. Podrás intentar de nuevo en 2 minutos."
+            retry_after = 120
         else:
-            mensaje_user = "Demasiados intentos fallidos. Tu cuenta ha sido bloqueada por 24 horas. Vuelve mañana."
-        desc = f"Intento fallido de inicio de sesión #{num_intento} de {max_attempts}."
-        if num_intento >= max_attempts:
-            desc += " Límite alcanzado, cuenta bloqueada temporalmente por 24 horas."
+            mensaje_user = "Demasiados intentos fallidos. Tu cuenta ha sido bloqueada por 10 minutos por seguridad."
+            retry_after = 600
+        desc = f"Intento fallido de inicio de sesión #{num_intento}."
+        if num_intento == 2:
+            desc += " Cuenta bloqueada por 2 minutos por seguridad."
+        elif num_intento >= 3:
+            desc += " Cuenta bloqueada por 10 minutos por seguridad."
             
         registrar_evento_auditoria(
             "login_failed",
@@ -122,10 +125,10 @@ def login():
             status="failure",
             actor_email=data["email"].strip().lower(),
             request_obj=request,
-            detail={"motivo": "credenciales_invalidas", "intento": num_intento, "max_intentos": max_attempts},
+            detail={"motivo": "credenciales_invalidas", "intento": num_intento},
             descripcion=desc
         )
-        return jsonify(message=mensaje_user), 401
+        return jsonify(message=mensaje_user, retry_after=retry_after), 401
     except ValueError as error:
         registrar_evento_auditoria(
             "login_failed",
