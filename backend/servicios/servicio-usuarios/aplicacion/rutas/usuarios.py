@@ -65,7 +65,22 @@ def _validar_usuario_activo():
 @role_required("ADMIN")
 def list_users():
     users = User.query.order_by(User.created_at.desc()).all()
-    return jsonify(users=[user.to_dict() for user in users])
+    store = current_app.extensions.get("login_attempts", {})
+    max_attempts = current_app.config.get("LOGIN_MAX_ATTEMPTS", 3)
+    
+    users_list = []
+    for u in users:
+        u_dict = u.to_dict()
+        email_suffix = f":{u.email.strip().lower()}"
+        intentos = 0
+        for k, attempts in store.items():
+            if k.endswith(email_suffix):
+                intentos = max(intentos, len(attempts))
+        u_dict["intentos_fallidos"] = intentos
+        u_dict["bloqueado"] = intentos >= max_attempts
+        users_list.append(u_dict)
+        
+    return jsonify(users=users_list)
 
 @users_bp.get("/psicologos")
 @jwt_required()
@@ -252,3 +267,23 @@ def change_status(user_id):
         },
     )
     return jsonify(message="Estado actualizado.", user=actualizado.to_dict())
+
+
+@users_bp.post("/<int:user_id>/desbloquear")
+@role_required("ADMIN")
+def unlock_user(user_id):
+    current_user = get_current_user()
+    user = db.get_or_404(User, user_id, description="Usuario no encontrado.")
+    from aplicacion.utilidades.intentos_login import unlock_user_login
+    unlock_user_login(user.email)
+    
+    registrar_evento_auditoria(
+        "admin_user_updated",
+        "administracion",
+        actor=current_user,
+        target=user,
+        request_obj=request,
+        detail={"accion": "desbloquear_login"},
+        descripcion=f"El administrador {current_user.email} desbloqueó los intentos de inicio de sesión para {user.email}."
+    )
+    return jsonify(message="Usuario desbloqueado con éxito.")

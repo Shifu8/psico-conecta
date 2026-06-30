@@ -104,6 +104,14 @@ def login():
         with _LOCK:
             attempts = list(current_app.extensions.get("login_attempts", {}).get(key, []))
         num_intento = len(attempts)
+        restantes = max_attempts - num_intento
+        if restantes > 0:
+            if restantes == 2:
+                mensaje_user = "Correo o contraseña incorrectos. Te quedan 2 intentos restantes."
+            else:
+                mensaje_user = f"Correo o contraseña incorrectos. Te queda {restantes} intento restante antes de bloquear la cuenta."
+        else:
+            mensaje_user = "Demasiados intentos fallidos. Tu cuenta ha sido bloqueada por 24 horas. Vuelve mañana."
         desc = f"Intento fallido de inicio de sesión #{num_intento} de {max_attempts}."
         if num_intento >= max_attempts:
             desc += " Límite alcanzado, cuenta bloqueada temporalmente por 24 horas."
@@ -117,7 +125,7 @@ def login():
             detail={"motivo": "credenciales_invalidas", "intento": num_intento, "max_intentos": max_attempts},
             descripcion=desc
         )
-        raise
+        return jsonify(message=mensaje_user), 401
     except ValueError as error:
         registrar_evento_auditoria(
             "login_failed",

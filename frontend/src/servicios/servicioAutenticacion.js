@@ -38,6 +38,9 @@ export const eliminarFotoPerfil = (userId) =>
 export const registrarEventoAuditoria = (evento) =>
   api.post(`/api/usuarios/auditoria/registrar`, evento);
 
+export const desbloquearUsuario = (userId) =>
+  api.post(`/api/usuarios/${userId}/desbloquear`);
+
 export const resolverUrlFotoPerfil = (usuario) => {
   const url = usuario?.profile_photo_url;
   if (!url) return "";

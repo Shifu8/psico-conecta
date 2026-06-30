@@ -1,4 +1,4 @@
-﻿# Archivo: intentos_login.py
+# Archivo: intentos_login.py
 # Descripción: Módulo de lógica de negocio, rutas o configuración.
 # Módulo: Servicio Usuarios
 
@@ -16,7 +16,7 @@ class TooManyLoginAttemptsError(Exception):
     def __init__(self, retry_after):
         self.retry_after = retry_after
         super().__init__(
-            "Demasiados intentos fallidos. Intenta nuevamente en unos minutos."
+            "Demasiados intentos fallidos. Tu cuenta ha sido bloqueada por 24 horas. Vuelve mañana."
         )
 
 
@@ -76,3 +76,12 @@ def clear_login_attempts(ip_address, email):
             _key(ip_address, email),
             None,
         )
+
+
+def unlock_user_login(email):
+    email_suffix = f":{email.strip().lower()}"
+    with _LOCK:
+        store = current_app.extensions.setdefault("login_attempts", {})
+        keys_to_delete = [k for k in store.keys() if k.endswith(email_suffix)]
+        for k in keys_to_delete:
+            store.pop(k, None)

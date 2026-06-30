@@ -25,7 +25,7 @@ import BarraProgreso from "../../componentes/BarraProgreso";
 import { usarAutenticacion } from "../../contexto/ContextoAutenticacion";
 import api from "../../servicios/api";
 import { capturarEvento } from "../../servicios/analitica";
-import { obtenerConfiguracionGoogle } from "../../servicios/servicioAutenticacion";
+import { obtenerConfiguracionGoogle, desbloquearUsuario } from "../../servicios/servicioAutenticacion";
 import { obtenerDatosOperativos, obtenerEstadoServicios } from "../../servicios/servicioModulos";
 import EncabezadoPanel from "./EncabezadoPanel";
 import TablaAuditoria from "../../componentes/admin/TablaAuditoria";
@@ -149,6 +149,23 @@ export default function PanelAdministrador() {
       await cargarDatos();
     } catch (excepcion) {
       setError(excepcion.response?.data?.message || "No fue posible actualizar el estado.");
+    } finally {
+      setProcesando(null);
+    }
+  };
+
+  const desbloquear = async (item) => {
+    setProcesando(item.id);
+    setError("");
+    try {
+      await desbloquearUsuario(item.id);
+      capturarEvento("admin_usuario_desbloqueado", {
+        usuario_email: item.email,
+        rol_objetivo: item.role,
+      });
+      await cargarDatos();
+    } catch (excepcion) {
+      setError(excepcion.response?.data?.message || "No fue posible desbloquear el usuario.");
     } finally {
       setProcesando(null);
     }
@@ -393,10 +410,24 @@ export default function PanelAdministrador() {
                     </div>
                   </td>
                   <td className="px-6 py-4 font-bold text-blue-600 dark:text-blue-300">{nombresRoles[item.role] || item.role}</td>
-                  <td className="px-6 py-4"><EstadoUsuario estado={item.status} /></td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1 items-start">
+                      <EstadoUsuario estado={item.status} />
+                      {item.bloqueado && (
+                        <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-[10px] font-black uppercase text-red-700 dark:bg-red-950/30 dark:text-red-300 flex items-center gap-1">
+                          <ShieldAlert size={10} /> Bloqueado
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 text-slate-500 dark:text-slate-300">{formatearFecha(item.created_at)}</td>
                   <td className="px-6 py-4">
                     <div className="flex justify-end gap-2">
+                      {item.bloqueado && (
+                        <button type="button" onClick={() => desbloquear(item)} disabled={procesando === item.id} className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50 dark:bg-emerald-950/50 dark:text-emerald-300 flex items-center gap-1" title="Desbloquear intentos de login">
+                          <ShieldCheck size={14} /> Desbloquear
+                        </button>
+                      )}
                       <button type="button" onClick={() => abrirEdicion(item)} className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-blue-50 hover:text-blue-700 dark:bg-slate-800 dark:text-slate-300" title="Editar perfil"><Edit3 size={16} /></button>
                       <button type="button" onClick={() => alternarEstado(item)} disabled={procesando === item.id} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-black text-blue-700 transition hover:bg-blue-100 disabled:opacity-50 dark:bg-blue-950/50 dark:text-blue-300">
                         {item.status === "active" ? "Pausar" : "Activar"}
