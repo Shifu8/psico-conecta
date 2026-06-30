@@ -19,6 +19,19 @@ export const useCitas = () => {
         }
     }, []);
 
+    const fetchTodasLasCitas = useCallback(async (params = {}) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await citasApi.getTodasLasCitas(params);
+            setCitas(response.data);
+        } catch (err) {
+            setError('No pudimos cargar las citas en este momento. Por favor, intenta de nuevo más tarde.');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     const agendarCita = async (data) => {
         setLoading(true);
         setError(null);
@@ -58,6 +71,7 @@ export const useCitas = () => {
         loading,
         error,
         fetchMisCitas,
+        fetchTodasLasCitas,
         agendarCita,
         cambiarEstado
     };

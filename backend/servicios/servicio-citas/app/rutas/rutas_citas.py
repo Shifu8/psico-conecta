@@ -1,4 +1,4 @@
-﻿# Archivo: rutas_citas.py
+# Archivo: rutas_citas.py
 # Descripción: Módulo de lógica de negocio, rutas o configuración.
 # Módulo: Servicio Citas
 
@@ -38,6 +38,16 @@ def agendar_cita():
         return jsonify({"error": error}), 400
         
     return jsonify(cita_schema.dump(cita)), 201
+
+@bp_citas.route('', methods=['GET'])
+@requiere_rol('ADMIN')
+def obtener_todas_las_citas():
+    estado = request.args.get('estado')
+    query = Cita.query
+    if estado:
+        query = query.filter_by(estado=estado)
+    citas = query.order_by(Cita.fecha_hora_inicio.desc()).all()
+    return jsonify(citas_list_schema.dump(citas)), 200
 
 @bp_citas.route('/mis-citas', methods=['GET'])
 @requiere_rol('PACIENTE', 'PSICOLOGO')
