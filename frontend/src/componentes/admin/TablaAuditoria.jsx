@@ -105,6 +105,30 @@ const EXPLICACIONES_EVENTOS = {
   "api_request": {
     descripcion: "Una petición general a la API de backend fue procesada de manera exitosa.",
     recomendacion: "Operación rutinaria del sistema."
+  },
+  "profile_photo_updated": {
+    descripcion: "Un usuario actualizó con éxito su foto de perfil.",
+    recomendacion: "Foto de perfil renovada correctamente. Sin acción necesaria."
+  },
+  "profile_photo_deleted": {
+    descripcion: "Un usuario eliminó su foto de perfil actual, volviendo a la imagen por defecto.",
+    recomendacion: "Foto removida correctamente. Sin acción necesaria."
+  },
+  "user_profile_updated": {
+    descripcion: "Un usuario modificó los datos de su perfil (nombre, teléfono, etc.).",
+    recomendacion: "Información de perfil actualizada de manera exitosa."
+  },
+  "cita_scheduled": {
+    descripcion: "Un paciente agendó una nueva cita psicológica en la plataforma.",
+    recomendacion: "Cita agendada correctamente. El sistema enviará la confirmación al profesional."
+  },
+  "cita_cancelled": {
+    descripcion: "Se canceló una cita agendada en la plataforma.",
+    recomendacion: "Cita anulada. El bloque horario ha sido liberado en la agenda para otros pacientes."
+  },
+  "cita_confirmed": {
+    descripcion: "Un psicólogo confirmó la cita agendada por el paciente.",
+    recomendacion: "Cita confirmada correctamente. Se enviará enlace de teleconsulta."
   }
 };
 

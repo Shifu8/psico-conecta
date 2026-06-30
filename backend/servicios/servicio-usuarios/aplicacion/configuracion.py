@@ -1,4 +1,4 @@
-﻿# Archivo: configuracion.py
+# Archivo: configuracion.py
 # Descripción: Módulo de lógica de negocio, rutas o configuración.
 # Módulo: Servicio Usuarios
 
@@ -61,9 +61,9 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(
         seconds=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "3600"))
     )
-    LOGIN_MAX_ATTEMPTS = int(os.getenv("LOGIN_MAX_ATTEMPTS", "5"))
+    LOGIN_MAX_ATTEMPTS = int(os.getenv("LOGIN_MAX_ATTEMPTS", "3"))
     LOGIN_ATTEMPT_WINDOW_SECONDS = int(
-        os.getenv("LOGIN_ATTEMPT_WINDOW_SECONDS", "300")
+        os.getenv("LOGIN_ATTEMPT_WINDOW_SECONDS", "86400")
     )
     _database_url = os.getenv("DATABASE_URL", "")
     if _database_url.startswith("postgresql://") and "+psycopg" not in _database_url:

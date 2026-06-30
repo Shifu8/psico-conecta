@@ -1,4 +1,4 @@
-﻿# Archivo: autenticacion.py
+# Archivo: autenticacion.py
 # Descripción: Módulo de lógica de negocio, rutas o configuración.
 # Módulo: Servicio Usuarios
 
@@ -70,27 +70,40 @@ def login():
     ip_address = request.remote_addr
     try:
         ensure_login_allowed(ip_address, data["email"])
-    except TooManyLoginAttemptsError:
+    except TooManyLoginAttemptsError as error:
         registrar_evento_auditoria(
             "login_blocked",
             "autenticacion",
             status="failure",
             actor_email=data["email"].strip().lower(),
             request_obj=request,
-            detail={"motivo": "demasiados_intentos"},
+            detail={"motivo": "demasiados_intentos", "espera_segundos": error.retry_after},
+            descripcion="Acceso bloqueado temporalmente por 24 horas. El usuario superó el límite de 3 intentos fallidos."
         )
         raise
     try:
         user, access_token = authenticate_user(data)
     except InvalidCredentialsError:
         register_failed_login(ip_address, data["email"])
+        from flask import current_app
+        from aplicacion.utilidades.intentos_login import _key, _config, _LOCK
+        max_attempts, window = _config()
+        key = _key(ip_address, data["email"])
+        with _LOCK:
+            attempts = list(current_app.extensions.get("login_attempts", {}).get(key, []))
+        num_intento = len(attempts)
+        desc = f"Intento fallido de inicio de sesión #{num_intento} de {max_attempts}."
+        if num_intento >= max_attempts:
+            desc += " Límite alcanzado, cuenta bloqueada temporalmente por 24 horas."
+            
         registrar_evento_auditoria(
             "login_failed",
             "autenticacion",
             status="failure",
             actor_email=data["email"].strip().lower(),
             request_obj=request,
-            detail={"motivo": "credenciales_invalidas"},
+            detail={"motivo": "credenciales_invalidas", "intento": num_intento, "max_intentos": max_attempts},
+            descripcion=desc
         )
         raise
     except ValueError as error:

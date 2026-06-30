@@ -35,6 +35,9 @@ export const subirFotoPerfil = (userId, archivo) => {
 export const eliminarFotoPerfil = (userId) =>
   api.delete(`/api/usuarios/${userId}/foto-perfil`);
 
+export const registrarEventoAuditoria = (evento) =>
+  api.post(`/api/usuarios/auditoria/registrar`, evento);
+
 export const resolverUrlFotoPerfil = (usuario) => {
   const url = usuario?.profile_photo_url;
   if (!url) return "";

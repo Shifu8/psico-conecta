@@ -35,6 +35,12 @@ MAPEO_EVENTOS = {
     "server_error": {"accion": "Error interno del servidor", "severidad": "Crítica", "canal": "API", "modulo": "Sistema"},
     "client_error": {"accion": "Petición de cliente inválida", "severidad": "Baja", "canal": "API", "modulo": "Sistema"},
     "api_request": {"accion": "Petición API", "severidad": "Baja", "canal": "API", "modulo": "Sistema"},
+    "profile_photo_updated": {"accion": "Foto de perfil actualizada", "severidad": "Baja", "canal": "Web", "modulo": "Usuarios"},
+    "profile_photo_deleted": {"accion": "Foto de perfil eliminada", "severidad": "Baja", "canal": "Web", "modulo": "Usuarios"},
+    "user_profile_updated": {"accion": "Perfil de usuario actualizado", "severidad": "Baja", "canal": "Web", "modulo": "Usuarios"},
+    "cita_scheduled": {"accion": "Cita agendada", "severidad": "Baja", "canal": "Web", "modulo": "Citas"},
+    "cita_cancelled": {"accion": "Cita cancelada", "severidad": "Media", "canal": "Web", "modulo": "Citas"},
+    "cita_confirmed": {"accion": "Cita confirmada", "severidad": "Baja", "canal": "Web", "modulo": "Citas"},
 }
 
 

@@ -1,4 +1,4 @@
-﻿# Archivo: usuarios.py
+# Archivo: usuarios.py
 # Descripción: Módulo de lógica de negocio, rutas o configuración.
 # Módulo: Servicio Usuarios
 
@@ -121,6 +121,15 @@ def upload_profile_photo(user_id):
     ruta.write_bytes(contenido)
     user.updated_at = utc_now()
     db.session.commit()
+    registrar_evento_auditoria(
+        "profile_photo_updated",
+        "usuarios",
+        actor=current_user,
+        target=user,
+        request_obj=request,
+        detail={"user_id": user.id},
+        descripcion=f"El usuario {current_user.email} actualizó su foto de perfil."
+    )
     return jsonify(message="Foto de perfil actualizada.", user=user.to_dict())
 
 
@@ -137,6 +146,15 @@ def delete_profile_photo(user_id):
     _eliminar_fotos_perfil(user.id)
     user.updated_at = utc_now()
     db.session.commit()
+    registrar_evento_auditoria(
+        "profile_photo_deleted",
+        "usuarios",
+        actor=current_user,
+        target=user,
+        request_obj=request,
+        detail={"user_id": user.id},
+        descripcion=f"El usuario {current_user.email} eliminó su foto de perfil."
+    )
     return jsonify(message="Foto de perfil eliminada.", user=user.to_dict())
 
 
@@ -181,6 +199,18 @@ def edit_user(user_id):
                 "rol_anterior": rol_anterior,
                 "rol_nuevo": actualizado.role.name if actualizado.role else None,
             },
+        )
+    else:
+        registrar_evento_auditoria(
+            "user_profile_updated",
+            "usuarios",
+            actor=current_user,
+            target=actualizado,
+            request_obj=request,
+            detail={
+                "campos": sorted(data.keys()),
+            },
+            descripcion=f"El usuario {current_user.email} actualizó sus datos de perfil."
         )
     return jsonify(message="Perfil actualizado.", user=actualizado.to_dict())
 

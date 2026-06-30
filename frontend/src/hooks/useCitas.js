@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { citasApi } from '../servicios/citasApi';
+import { registrarEventoAuditoria } from '../servicios/servicioAutenticacion';
 
 export const useCitas = () => {
     const [citas, setCitas] = useState([]);
@@ -37,6 +38,17 @@ export const useCitas = () => {
         setError(null);
         try {
             const response = await citasApi.agendar(data);
+            try {
+                await registrarEventoAuditoria({
+                    event_type: "cita_scheduled",
+                    category: "citas",
+                    status: "success",
+                    modulo: "citas",
+                    descripcion: `Cita agendada para el psicólogo ID ${data.psicologo_id} en fecha/hora: ${data.fecha_hora_inicio}.`
+                });
+            } catch (auditErr) {
+                console.warn('Error al registrar auditoría:', auditErr);
+            }
             return response.data;
         } catch (err) {
             setError('Lo sentimos, hubo un problema al intentar agendar tu cita.');
@@ -56,6 +68,21 @@ export const useCitas = () => {
                 case 'cancelar': response = await citasApi.cancelar(id, data); break;
                 case 'reprogramar': response = await citasApi.reprogramar(id, data); break;
                 default: throw new Error('Acción no soportada');
+            }
+            try {
+                const eventType = accion === 'confirmar' ? 'cita_confirmed' : 'cita_cancelled';
+                const desc = accion === 'confirmar' 
+                    ? `Cita ID ${id} confirmada por el profesional.`
+                    : `Cita ID ${id} cancelada. Motivo: ${data?.motivo || 'No especificado'}.`;
+                await registrarEventoAuditoria({
+                    event_type: eventType,
+                    category: "citas",
+                    status: "success",
+                    modulo: "citas",
+                    descripcion: desc
+                });
+            } catch (auditErr) {
+                console.warn('Error al registrar auditoría:', auditErr);
             }
             return response.data;
         } catch (err) {
