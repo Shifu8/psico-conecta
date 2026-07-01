@@ -1,4 +1,4 @@
-﻿# Archivo: validacion.py
+# Archivo: validacion.py
 # Descripción: Módulo de lógica de negocio, rutas o configuración.
 # Módulo: Servicio Usuarios
 
@@ -71,8 +71,8 @@ def _years_ago(years):
 
 
 def validate_birth_date(value):
-    if value > _years_ago(18):
-        raise ValidationError("Debes ser mayor de edad para registrarte.")
+    if value > _years_ago(17):
+        raise ValidationError("Debes tener al menos 17 años.")
     if value < _years_ago(120):
         raise ValidationError("Ingresa una fecha de nacimiento valida.")
 

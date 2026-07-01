@@ -1,4 +1,4 @@
-﻿# Archivo: usuario.py
+# Archivo: usuario.py
 # Descripción: Módulo de lógica de negocio, rutas o configuración.
 # Módulo: Servicio Usuarios
 
@@ -9,6 +9,7 @@ from aplicacion.utilidades.validacion import (
     normalize_spaces,
     validate_name,
     validate_phone,
+    validate_birth_date,
 )
 
 
@@ -17,6 +18,7 @@ class UserUpdateSchema(Schema):
     last_name = fields.String(validate=[validate.Length(min=2, max=80), validate_name])
     phone = fields.String(allow_none=True, validate=validate_phone)
     role = fields.String(validate=validate.OneOf(["ADMIN", "PSYCHOLOGIST", "PATIENT"]))
+    birth_date = fields.Date(allow_none=True, validate=validate_birth_date)
 
     @pre_load
     def normalize(self, data, **_kwargs):

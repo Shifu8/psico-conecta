@@ -135,7 +135,7 @@ export default function PaginaDetalleCita() {
             </button>
           )}
           
-          {['PENDIENTE', 'CONFIRMADA', 'REPROGRAMADA'].includes(cita.estado) && (
+          {['PENDIENTE', 'CONFIRMADA', 'REPROGRAMADA'].includes(cita.estado) && !esPaciente && (
             <button 
               onClick={handleCancelar} disabled={accionLoading}
               className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"

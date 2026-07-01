@@ -95,23 +95,30 @@ export const validarTelefono = (valor) => {
   return "";
 };
 
-export const obtenerFechaMaximaAdulto = () => {
+export const obtenerFechaMaximaAdulto = (edadMinima = 17) => {
   const fecha = new Date();
-  fecha.setFullYear(fecha.getFullYear() - 18);
+  fecha.setFullYear(fecha.getFullYear() - edadMinima);
   return fecha.toISOString().slice(0, 10);
 };
 
-export const validarFechaNacimiento = (valor) => {
+export const validarFechaNacimiento = (valor, rol = "PATIENT") => {
   if (!valor) return "La fecha de nacimiento es obligatoria.";
   const fecha = new Date(`${valor}T00:00:00`);
   if (Number.isNaN(fecha.getTime())) {
     return "Ingresa una fecha de nacimiento valida.";
   }
+  
+  const edadMinima = rol === "PSYCHOLOGIST" ? 20 : 17;
+  
   const fechaMinima = new Date();
   fechaMinima.setFullYear(fechaMinima.getFullYear() - 120);
   fechaMinima.setHours(0, 0, 0, 0);
-  const fechaMaxima = new Date(`${obtenerFechaMaximaAdulto()}T00:00:00`);
-  if (fecha > fechaMaxima) return "Debes ser mayor de edad para registrarte.";
+  
+  const fechaMaxima = new Date();
+  fechaMaxima.setFullYear(fechaMaxima.getFullYear() - edadMinima);
+  fechaMaxima.setHours(0, 0, 0, 0);
+
+  if (fecha > fechaMaxima) return `Debes tener al menos ${edadMinima} años.`;
   if (fecha < fechaMinima) return "Ingresa una fecha de nacimiento valida.";
   return "";
 };

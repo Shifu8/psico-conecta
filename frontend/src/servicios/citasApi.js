@@ -21,7 +21,8 @@ export const citasApi = {
   crearBloque: (data) => API.post('/disponibilidad', data),
   editarBloque: (id, data) => API.put(`/disponibilidad/${id}`, data),
   eliminarBloque: (id) => API.delete(`/disponibilidad/${id}`),
-  crearExcepcion: (data) => API.post('/disponibilidad/excepciones', data),
+  getExcepciones: (psicologoId) => API.get(`/disponibilidad/${psicologoId}/excepciones`),
+  crearExcepcion: (psicologoId, data) => API.post(`/disponibilidad/${psicologoId}/excepciones`, data),
   eliminarExcepcion: (id) => API.delete(`/disponibilidad/excepciones/${id}`),
 
   // Citas

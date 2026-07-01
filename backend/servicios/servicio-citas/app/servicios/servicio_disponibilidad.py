@@ -1,4 +1,4 @@
-﻿# Archivo: servicio_disponibilidad.py
+# Archivo: servicio_disponibilidad.py
 # Descripción: Módulo de lógica de negocio, rutas o configuración.
 # Módulo: Servicio Citas
 
@@ -70,6 +70,19 @@ class ServicioDisponibilidad:
         db.session.add(excepcion)
         db.session.commit()
         return excepcion
+
+    @staticmethod
+    def obtener_excepciones(psicologo_id):
+        return ExcepcionDisponibilidad.query.filter_by(psicologo_id=psicologo_id).order_by(ExcepcionDisponibilidad.fecha).all()
+
+    @staticmethod
+    def eliminar_excepcion(excepcion_id):
+        excepcion = ExcepcionDisponibilidad.query.filter_by(id=excepcion_id).first()
+        if not excepcion:
+            return False
+        db.session.delete(excepcion)
+        db.session.commit()
+        return True
 
     # ------------------------------------------------------------------
     # Generar slots para una fecha concreta

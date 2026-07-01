@@ -8,6 +8,7 @@ import RecuperarContrasena from "../paginas/autenticacion/RecuperarContrasena";
 import Registro from "../paginas/autenticacion/Registro";
 import RestablecerContrasena from "../paginas/autenticacion/RestablecerContrasena";
 import PanelAdministrador from "../paginas/paneles/PanelAdministrador";
+import PaginaDisponibilidadAdmin from "../paginas/admin/PaginaDisponibilidadAdmin";
 import PanelPaciente from "../paginas/paneles/PanelPaciente";
 import PanelPsicologo from "../paginas/paneles/PanelPsicologo";
 import DashboardPsicologo from "../paginas/paneles/DashboardPsicologo";
@@ -40,6 +41,7 @@ export default function RutasAplicacion() {
 
           <Route element={<RutaRol roles={["ADMIN"]} />}>
             <Route path="/administrador" element={<PanelAdministrador />} />
+            <Route path="/administrador/disponibilidad" element={<PaginaDisponibilidadAdmin />} />
           </Route>
           <Route element={<RutaRol roles={["PSYCHOLOGIST"]} />}>
             <Route path="/psicologo" element={<PanelPsicologo />} />

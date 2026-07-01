@@ -14,7 +14,7 @@ export const useCitas = () => {
             const response = await citasApi.getMisCitas(params);
             setCitas(response.data);
         } catch (err) {
-            setError('No pudimos cargar tus citas en este momento. Por favor, intenta de nuevo más tarde.');
+            console.error('Error al cargar mis citas:', err);
         } finally {
             setLoading(false);
         }
@@ -27,7 +27,7 @@ export const useCitas = () => {
             const response = await citasApi.getTodasLasCitas(params);
             setCitas(response.data);
         } catch (err) {
-            setError('No pudimos cargar las citas en este momento. Por favor, intenta de nuevo más tarde.');
+            console.error('Error al cargar todas las citas:', err);
         } finally {
             setLoading(false);
         }

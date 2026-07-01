@@ -7,6 +7,7 @@ import {
   eliminarFotoPerfil,
   subirFotoPerfil,
 } from "../servicios/servicioAutenticacion";
+import { validarFechaNacimiento } from "../utilidades/validacion";
 import EncabezadoPanel from "./paneles/EncabezadoPanel";
 
 const nombresRoles = {
@@ -20,7 +21,7 @@ const TIPOS_FOTO = ["image/jpeg", "image/png", "image/webp"];
 
 export default function Perfil() {
   const { usuario, setUsuario } = usarAutenticacion();
-  const [formulario, setFormulario] = useState({ first_name: "", last_name: "", phone: "" });
+  const [formulario, setFormulario] = useState({ first_name: "", last_name: "", phone: "", birth_date: "" });
   const [guardando, setGuardando] = useState(false);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [mensaje, setMensaje] = useState("");
@@ -32,6 +33,7 @@ export default function Perfil() {
       first_name: usuario.first_name || "",
       last_name: usuario.last_name || "",
       phone: usuario.phone || "",
+      birth_date: usuario.birth_date || "",
     });
   }, [usuario]);
 
@@ -46,12 +48,19 @@ export default function Perfil() {
     evento.preventDefault();
     setGuardando(true);
     setMensaje("");
-    setError("");
+    const errorNacimiento = validarFechaNacimiento(formulario.birth_date, usuario.role);
+    if (errorNacimiento) {
+      setError(errorNacimiento);
+      setGuardando(false);
+      return;
+    }
+
     try {
       const { data } = await actualizarPerfil(usuario.id, {
         first_name: formulario.first_name,
         last_name: formulario.last_name,
         phone: formulario.phone || null,
+        birth_date: formulario.birth_date || null,
       });
       setUsuario(data.user);
       setMensaje("Perfil actualizado correctamente.");
@@ -223,13 +232,20 @@ export default function Perfil() {
                   />
                 </div>
               </label>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-                <CalendarDays size={18} className="text-blue-600 dark:text-blue-300" />
-                <p className="mt-3 text-xs font-black uppercase tracking-wider text-slate-400">Fecha de nacimiento</p>
-                <p className="mt-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                  {usuario.birth_date || "No registrada"}
-                </p>
-              </div>
+              <label className="block">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-400">Fecha de nacimiento</span>
+                <div className="relative mt-2">
+                  <CalendarDays size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="date"
+                    name="birth_date"
+                    value={formulario.birth_date}
+                    onChange={manejarCambio}
+                    className="campo pl-11 text-slate-700 dark:text-slate-200"
+                    required
+                  />
+                </div>
+              </label>
             </div>
 
             <div className="mt-8 flex justify-end">

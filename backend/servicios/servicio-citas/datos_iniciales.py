@@ -1,4 +1,4 @@
-﻿# Archivo: datos_iniciales.py
+# Archivo: datos_iniciales.py
 # Descripción: Poblado de datos iniciales para la base de datos.
 # Módulo: Servicio Citas
 
@@ -9,6 +9,9 @@ from sqlalchemy import text
 from datetime import datetime, timedelta, time
 
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def obtener_ids_demo():
     # Obtener IDs de la tabla users
