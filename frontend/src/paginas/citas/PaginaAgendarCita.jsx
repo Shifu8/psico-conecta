@@ -7,8 +7,14 @@ import SlotSelector from '../../componentes/citas/SlotSelector';
 import api from '../../servicios/api';
 import AvatarUsuario from '../../componentes/AvatarUsuario';
 
+const fechaLocalISO = () => {
+  const ahora = new Date();
+  const desplazamiento = ahora.getTimezoneOffset() * 60000;
+  return new Date(ahora.getTime() - desplazamiento).toISOString().slice(0, 10);
+};
+
 export default function PaginaAgendarCita() {
-  const { slots, fetchSlots, loading: loadingSlots } = useDisponibilidad();
+  const { slots, fetchSlots, limpiarSlots, loading: loadingSlots, error: errorSlots } = useDisponibilidad();
   const { agendarCita, loading: agendando } = useCitas();
   const navigate = useNavigate();
 
@@ -54,11 +60,11 @@ export default function PaginaAgendarCita() {
   const handleAgendar = async () => {
     if (!selectedSlot) return;
 
-    const fechaHoraInicio = `${fecha}T${selectedSlot.hora_inicio}`;
+    const fechaHoraInicio = selectedSlot.fecha_hora_inicio || `${fecha}T${selectedSlot.hora_inicio}`;
 
     try {
       await agendarCita({
-        psicologo_id: psicologoId,
+        psicologo_id: Number(psicologoId),
         fecha_hora_inicio: fechaHoraInicio,
         modalidad: modalidad,
         motivo_consulta: motivo
@@ -67,8 +73,12 @@ export default function PaginaAgendarCita() {
       setError('');
       setTimeout(() => navigate('/paciente'), 1500);
     } catch (err) {
-      console.error(err);
-      setError('No fue posible agendar la cita. Intenta con otro horario.');
+      console.error('Error al agendar cita:', err.response?.data || err);
+      setError(
+        err.response?.data?.mensaje ||
+        err.response?.data?.message ||
+        'No fue posible agendar la cita. Revisa los datos e inténtalo nuevamente.'
+      );
       setMensaje('');
     }
   };
@@ -116,7 +126,11 @@ export default function PaginaAgendarCita() {
                     <button
                       key={ps.id}
                       type="button"
-                      onClick={() => { setPsicologoId(String(ps.id)); setSelectedSlot(null); }}
+                      onClick={() => {
+                        setPsicologoId(String(ps.id));
+                        setSelectedSlot(null);
+                        limpiarSlots();
+                      }}
                       className={`group flex flex-col items-center overflow-hidden rounded-2xl border-2 p-4 text-center transition-all ${
                         isSelected
                           ? 'border-blue-500 bg-blue-50 shadow-md dark:border-blue-400 dark:bg-blue-900/20'
@@ -149,10 +163,14 @@ export default function PaginaAgendarCita() {
             <input
               type="date"
               value={fecha}
-              onChange={(e) => { setFecha(e.target.value); setSelectedSlot(null); }}
+              onChange={(e) => {
+                setFecha(e.target.value);
+                setSelectedSlot(null);
+                limpiarSlots();
+              }}
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition-colors focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
               required
-              min={new Date().toISOString().split('T')[0]}
+              min={fechaLocalISO()}
             />
           </div>
 
@@ -185,6 +203,7 @@ export default function PaginaAgendarCita() {
             loading={loadingSlots}
             onSelectSlot={handleSeleccionarSlot}
             selectedSlot={selectedSlot}
+            error={errorSlots}
           />
 
           {/* Confirmación de cita */}

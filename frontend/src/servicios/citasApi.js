@@ -14,6 +14,17 @@ API.interceptors.request.use(config => {
   return config;
 });
 
+API.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401 && localStorage.getItem('psicoconecta_token')) {
+      localStorage.removeItem('psicoconecta_token');
+      window.dispatchEvent(new Event('psicoconecta:sesion-expirada'));
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const citasApi = {
   // Disponibilidad
   getSlots: (psicologoId, fecha) => API.get(`/disponibilidad/${psicologoId}/slots`, { params: { fecha } }),

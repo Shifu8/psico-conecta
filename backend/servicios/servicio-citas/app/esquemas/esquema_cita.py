@@ -1,54 +1,61 @@
-﻿# Archivo: esquema_cita.py
-# Descripción: Módulo de lógica de negocio, rutas o configuración.
-# Módulo: Servicio Citas
+from marshmallow import Schema, fields, validate
 
-from marshmallow import Schema, fields, validate, validates, ValidationError
-from datetime import datetime
-import pytz
+
+ESTADOS = [
+    "PENDIENTE", "CONFIRMADA", "REPROGRAMADA", "CANCELADA",
+    "COMPLETADA", "NO_ASISTIDA",
+]
+MODALIDADES = ["VIRTUAL", "PRESENCIAL"]
+
 
 class CitaSchema(Schema):
     id = fields.UUID(dump_only=True)
-    paciente_id = fields.Integer(required=True)
-    psicologo_id = fields.Integer(required=True)
-    fecha_hora_inicio = fields.DateTime(required=True)
-    fecha_hora_fin = fields.DateTime(required=True)
-    estado = fields.String(validate=validate.OneOf(['PENDIENTE', 'CONFIRMADA', 'REPROGRAMADA', 'CANCELADA', 'COMPLETADA', 'NO_ASISTIDA']))
-    modalidad = fields.String(validate=validate.OneOf(['VIRTUAL', 'PRESENCIAL']))
-    motivo_consulta = fields.String(validate=validate.Length(max=500), allow_none=True)
-    notas_psicologo = fields.String(allow_none=True)
-    motivo_cancelacion = fields.String(allow_none=True)
-    cancelado_por = fields.Integer(allow_none=True)
-    reprogramada_desde = fields.UUID(allow_none=True)
+    paciente_id = fields.Integer(dump_only=True)
+    psicologo_id = fields.Integer(dump_only=True)
+    fecha_hora_inicio = fields.DateTime(dump_only=True)
+    fecha_hora_fin = fields.DateTime(dump_only=True)
+    estado = fields.String(dump_only=True)
+    modalidad = fields.String(dump_only=True)
+    motivo_consulta = fields.String(dump_only=True, allow_none=True)
+    notas_psicologo = fields.String(dump_only=True, allow_none=True)
+    motivo_cancelacion = fields.String(dump_only=True, allow_none=True)
+    cancelado_por = fields.Integer(dump_only=True, allow_none=True)
+    reprogramada_desde = fields.UUID(dump_only=True, allow_none=True)
     fecha_creacion = fields.DateTime(dump_only=True)
     fecha_actualizacion = fields.DateTime(dump_only=True)
 
-class AgendarCitaSchema(Schema):
-    psicologo_id = fields.Integer(required=True)
-    fecha_hora_inicio = fields.DateTime(required=True)
-    modalidad = fields.String(validate=validate.OneOf(['VIRTUAL', 'PRESENCIAL']), load_default='VIRTUAL')
-    motivo_consulta = fields.String(validate=validate.Length(max=500), allow_none=True)
 
-    @validates('fecha_hora_inicio')
-    def no_en_el_pasado(self, value):
-        if value.replace(tzinfo=pytz.UTC) < datetime.utcnow().replace(tzinfo=pytz.UTC):
-            raise ValidationError('No se pueden agendar citas en el pasado.')
+class AgendarCitaSchema(Schema):
+    psicologo_id = fields.Integer(required=True, validate=validate.Range(min=1))
+    fecha_hora_inicio = fields.DateTime(required=True)
+    modalidad = fields.String(
+        load_default="VIRTUAL", validate=validate.OneOf(MODALIDADES)
+    )
+    motivo_consulta = fields.String(
+        load_default=None, allow_none=True, validate=validate.Length(max=500)
+    )
+
 
 class ReprogramarCitaSchema(Schema):
     nueva_fecha_hora_inicio = fields.DateTime(required=True)
 
-    @validates('nueva_fecha_hora_inicio')
-    def no_en_el_pasado(self, value):
-        if value.replace(tzinfo=pytz.UTC) < datetime.utcnow().replace(tzinfo=pytz.UTC):
-            raise ValidationError('No se pueden reprogramar citas en el pasado.')
 
 class CancelarCitaSchema(Schema):
     motivo = fields.String(required=True, validate=validate.Length(min=5, max=255))
 
+
+class ActualizarNotasSchema(Schema):
+    notas = fields.String(required=True, validate=validate.Length(max=5000))
+
+
 class HistorialCambioCitaSchema(Schema):
     id = fields.UUID(dump_only=True)
-    cita_id = fields.UUID(required=True)
-    estado_anterior = fields.String(allow_none=True)
-    estado_nuevo = fields.String(required=True)
-    cambiado_por = fields.Integer(required=True)
-    motivo = fields.String(allow_none=True)
+    cita_id = fields.UUID(dump_only=True)
+    accion = fields.String(dump_only=True)
+    estado_anterior = fields.String(dump_only=True, allow_none=True)
+    estado_nuevo = fields.String(dump_only=True)
+    cambiado_por = fields.Integer(dump_only=True)
+    motivo = fields.String(dump_only=True, allow_none=True)
+    datos_anteriores = fields.Dict(dump_only=True, allow_none=True)
+    datos_nuevos = fields.Dict(dump_only=True, allow_none=True)
     fecha_cambio = fields.DateTime(dump_only=True)

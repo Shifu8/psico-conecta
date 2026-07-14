@@ -1,82 +1,123 @@
-# Archivo: datos_iniciales.py
-# Descripción: Poblado de datos iniciales para la base de datos.
-# Módulo: Servicio Citas
+import time
+from datetime import timedelta, time as hora
 
-from app import create_app, db
-from app.modelos.disponibilidad import Disponibilidad
-from app.modelos.cita import Cita
-from sqlalchemy import text
-from datetime import datetime, timedelta, time
-
-import os
 from dotenv import load_dotenv
+from sqlalchemy import text
 
 load_dotenv()
 
-def obtener_ids_demo():
-    # Obtener IDs de la tabla users
-    tabla_users = "usuarios_schema.usuarios" if os.getenv("DB_SCHEMA") else "usuarios"
-    with db.engine.connect() as conn:
-        result_psicologo = conn.execute(text(f"SELECT id FROM {tabla_users} WHERE email = 'psicologo@psicoconecta.com'")).first()
-        result_paciente = conn.execute(text(f"SELECT id FROM {tabla_users} WHERE email = 'paciente@psicoconecta.com'")).first()
-        
-    return (result_psicologo[0] if result_psicologo else None, 
-            result_paciente[0] if result_paciente else None)
+from app import create_app, db
+from app.modelos.cita import Cita
+from app.modelos.disponibilidad import Disponibilidad
+from app.servicios.servicio_cita import ServicioCita
+from app.utilidades.tiempo import ahora_utc, a_hora_local, combinar_fecha_hora_local
+
+
+HORARIOS_BASE = (
+    (hora(8, 0), hora(12, 0), 50),
+    (hora(14, 0), hora(17, 0), 50),
+)
+
+
+def obtener_usuarios_demo_y_psicologos():
+    consulta = text(
+        """
+        SELECT u.id, u.email, r.name AS rol
+        FROM usuarios_schema.usuarios u
+        JOIN usuarios_schema.roles r ON r.id = u.role_id
+        WHERE u.status = 'active'
+          AND (r.name = 'PSYCHOLOGIST' OR u.email = 'paciente@psicoconecta.com')
+        ORDER BY u.id
+        """
+    )
+    filas = db.session.execute(consulta).all()
+    psicologos = [fila.id for fila in filas if fila.rol == "PSYCHOLOGIST"]
+    paciente_demo = next(
+        (fila.id for fila in filas if fila.email == "paciente@psicoconecta.com"),
+        None,
+    )
+    return psicologos, paciente_demo
+
+
+def esperar_usuarios(intentos=30):
+    for _ in range(intentos):
+        try:
+            psicologos, paciente_demo = obtener_usuarios_demo_y_psicologos()
+            if psicologos:
+                return psicologos, paciente_demo
+        except Exception:
+            db.session.rollback()
+        time.sleep(1)
+    return [], None
+
+
+def asegurar_horarios_base(psicologo_id):
+    if Disponibilidad.query.filter_by(psicologo_id=psicologo_id).first():
+        return False
+
+    for dia in range(5):
+        for inicio, fin, duracion in HORARIOS_BASE:
+            db.session.add(
+                Disponibilidad(
+                    psicologo_id=psicologo_id,
+                    dia_semana=dia,
+                    hora_inicio=inicio,
+                    hora_fin=fin,
+                    duracion_slot=duracion,
+                    activo=True,
+                )
+            )
+    return True
+
+
+def crear_cita_demo(psicologo_id, paciente_id):
+    if not paciente_id or Cita.query.filter_by(psicologo_id=psicologo_id).first():
+        return False
+
+    fecha_local = a_hora_local(ahora_utc()).date() + timedelta(days=1)
+    while fecha_local.weekday() > 4:
+        fecha_local += timedelta(days=1)
+    inicio_local = combinar_fecha_hora_local(fecha_local, hora(9, 40))
+    fin_local = combinar_fecha_hora_local(fecha_local, hora(10, 30))
+    cita = Cita(
+        paciente_id=paciente_id,
+        psicologo_id=psicologo_id,
+        fecha_hora_inicio=inicio_local.astimezone(ahora_utc().tzinfo),
+        fecha_hora_fin=fin_local.astimezone(ahora_utc().tzinfo),
+        estado="CONFIRMADA",
+        modalidad="VIRTUAL",
+        motivo_consulta="Cita demostrativa",
+    )
+    db.session.add(cita)
+    db.session.flush()
+    ServicioCita.registrar_historial(
+        cita,
+        "CREACION_DEMO",
+        psicologo_id,
+        motivo="Dato inicial de demostración",
+    )
+    return True
+
 
 def seed_database():
     db.create_all()
-    psicologo_id, paciente_id = obtener_ids_demo()
-    
-    if not psicologo_id or not paciente_id:
-        print("No se encontraron usuarios demo en usuarios_schema. Ejecute primero el seed de usuarios.")
+    psicologos, paciente_demo = esperar_usuarios()
+    if not psicologos:
+        print("No se encontraron psicólogos activos; el servicio iniciará sin horarios persistidos.")
         return
 
-    # Verificar si ya hay disponibilidad
-    if not Disponibilidad.query.filter_by(psicologo_id=psicologo_id).first():
-        # Lunes a Viernes: bloque mañana 08:00-12:00 y bloque tarde 14:00-17:00
-        for dia in range(5):
-            # Bloque mañana
-            db.session.add(Disponibilidad(
-                psicologo_id=psicologo_id,
-                dia_semana=dia,
-                hora_inicio=time(8, 0),
-                hora_fin=time(12, 0),
-                duracion_slot=60
-            ))
-            # Bloque tarde
-            db.session.add(Disponibilidad(
-                psicologo_id=psicologo_id,
-                dia_semana=dia,
-                hora_inicio=time(14, 0),
-                hora_fin=time(17, 0),
-                duracion_slot=60
-            ))
-        db.session.commit()
-        print("Disponibilidad demo creada (L-V, 08-12 y 14-17, slots de 60 min).")
+    creados = 0
+    for psicologo_id in psicologos:
+        if asegurar_horarios_base(psicologo_id):
+            creados += 1
 
-    # Verificar si ya hay citas
-    if not Cita.query.filter_by(psicologo_id=psicologo_id).first():
-        # Crear una cita mañana
-        manana = datetime.now() + timedelta(days=1)
-        if manana.weekday() > 4: # Si es fin de semana, pasar a lunes
-            manana = manana + timedelta(days=7 - manana.weekday())
-            
-        hora_cita_inicio = manana.replace(hour=10, minute=0, second=0, microsecond=0)
-        hora_cita_fin = manana.replace(hour=11, minute=0, second=0, microsecond=0)
-        
-        db.session.add(Cita(
-            paciente_id=paciente_id,
-            psicologo_id=psicologo_id,
-            fecha_hora_inicio=hora_cita_inicio,
-            fecha_hora_fin=hora_cita_fin,
-            estado='CONFIRMADA',
-            modalidad='VIRTUAL',
-            motivo_consulta='Ansiedad generalizada'
-        ))
-        db.session.commit()
-        print("Cita demo creada (10:00-11:00).")
+    # Solo se crea una cita de demostración, para no ocupar horarios de todos.
+    crear_cita_demo(psicologos[0], paciente_demo)
+    db.session.commit()
+    print(f"Horarios base verificados para {len(psicologos)} psicólogo(s); nuevos: {creados}.")
+
 
 if __name__ == "__main__":
-    app = create_app()
-    with app.app_context():
+    aplicacion = create_app()
+    with aplicacion.app_context():
         seed_database()

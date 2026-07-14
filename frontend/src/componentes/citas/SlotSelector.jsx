@@ -20,7 +20,7 @@ const SlotSelector = ({ slots, loading, error, onSelectSlot, selectedSlot }) => 
       <div className="flex flex-col items-center justify-center py-10 text-slate-400 dark:text-slate-500">
         <Clock size={32} className="mb-3 opacity-40" />
         <p className="text-sm font-semibold">No hay horarios disponibles para esta fecha.</p>
-        <p className="mt-1 text-xs">Selecciona un día hábil (lunes a viernes).</p>
+        <p className="mt-1 text-xs">Elige otra fecha; puede estar fuera del horario laboral o bloqueada por el administrador.</p>
       </div>
     );
   }

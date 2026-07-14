@@ -14,6 +14,7 @@ import {
   Video,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import BarraProgreso from "../../componentes/BarraProgreso";
 import { usarAutenticacion } from "../../contexto/ContextoAutenticacion";
 import { crearRegistroEmocional, obtenerDatosOperativos } from "../../servicios/servicioModulos";
@@ -22,7 +23,7 @@ import api from "../../servicios/api";
 
 const modulos = [
   { titulo: "Mi próxima cita", texto: "Revisa y organiza tus próximos espacios de atención.", detalle: "Consulta tu agenda", icono: CalendarDays, ruta: "/citas" },
-  { titulo: "Sesión virtual", texto: "Ingresa a tus encuentros programados desde un solo lugar.", detalle: "Revisa tus sesiones", icono: Video },
+  { titulo: "Sesión virtual", texto: "Ingresa a tus encuentros programados desde un solo lugar.", detalle: "Revisa tus sesiones", icono: Video, ruta: "/teleconsultas" },
   { titulo: "Mi bienestar", texto: "Mantén un seguimiento cercano de tu proceso emocional.", detalle: "Registra cómo te sientes", icono: Activity },
   { titulo: "Mis pagos", texto: "Consulta la información económica de tu atención con claridad.", detalle: "Revisa tus pagos", icono: CreditCard },
 ];
@@ -161,8 +162,9 @@ export default function PanelPaciente() {
         </div>
       )}
 
-      <section className="mt-8 grid gap-4 sm:grid-cols-2">
-        <Tarjeta titulo="Próxima cita" valor={proximaCita ? formatearHora(fechaCita(proximaCita)) : "Sin cita"} detalle={proximaCita ? `${formatearFecha(fechaCita(proximaCita))} · ${obtenerNombrePsicologo(proximaCita.psicologo_id)}` : "Aún no hay agenda"} icono={CalendarDays} />
+      <section className="mt-8 grid gap-4 sm:grid-cols-3">
+        <Tarjeta titulo="Próxima cita" valor={proximaCita ? formatearHora(fechaCita(proximaCita)) : "Sin cita"} detalle={proximaCita ? `${formatearFecha(fechaCita(proximaCita))} · ${obtenerNombrePsicologo(proximaCita.psicologo_id)}` : "Aún no hay agenda"} icono={CalendarDays} ruta="/citas" />
+        <Tarjeta titulo="Teleconsultas" valor={datos.sesiones.length} detalle="Sesiones virtuales confirmadas" icono={Video} ruta="/teleconsultas" />
         <Tarjeta titulo="Registro emocional" valor={emocionesPaciente.length} detalle="Entradas personales" icono={Activity} />
       </section>
 
@@ -312,15 +314,16 @@ export default function PanelPaciente() {
   );
 }
 
-function Tarjeta({ titulo, valor, detalle, icono: Icono }) {
-  return (
-    <article className="panel p-5">
+function Tarjeta({ titulo, valor, detalle, icono: Icono, ruta }) {
+  const contenido = (
+    <article className="panel h-full p-5 transition hover:-translate-y-0.5 hover:shadow-lg">
       <span className="icono-panel"><Icono size={21} /></span>
       <p className="mt-5 text-2xl font-black text-slate-900 dark:text-white">{valor}</p>
       <p className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{titulo}</p>
       <p className="mt-1 text-xs text-slate-400">{detalle}</p>
     </article>
   );
+  return ruta ? <Link to={ruta} className="block h-full">{contenido}</Link> : contenido;
 }
 
 function ControlNumero({ etiqueta, valor, onChange, max = 10 }) {

@@ -1,39 +1,49 @@
-﻿# Archivo: helpers.py
-# Descripción: Módulo de lógica de negocio, rutas o configuración.
-# Módulo: Servicio Citas
-
 from datetime import datetime, timedelta
-import pytz
+
+from sqlalchemy import text
+
+from app import db
+from app.utilidades.tiempo import asegurar_datetime_utc
+
 
 def generar_slots(hora_inicio, hora_fin, duracion_slot_minutos):
-    """
-    Genera una lista de diccionarios con hora_inicio y hora_fin para cada
-    slot dentro del bloque dado.
-    """
     slots = []
-    
-    # Creamos objetos datetime artificiales solo para el cálculo de intervalos
-    dt_actual = datetime.combine(datetime.today(), hora_inicio)
-    dt_fin = datetime.combine(datetime.today(), hora_fin)
-    
+    referencia = datetime(2000, 1, 1)
+    actual = datetime.combine(referencia.date(), hora_inicio)
+    final = datetime.combine(referencia.date(), hora_fin)
     delta = timedelta(minutes=duracion_slot_minutos)
-    
-    while dt_actual + delta <= dt_fin:
-        slot_fin = dt_actual + delta
+
+    while actual + delta <= final:
+        siguiente = actual + delta
         slots.append({
-            'hora_inicio': dt_actual.time().isoformat(),
-            'hora_fin': slot_fin.time().isoformat(),
+            "hora_inicio": actual.time(),
+            "hora_fin": siguiente.time(),
         })
-        dt_actual = slot_fin
-        
+        actual = siguiente
     return slots
 
-def parse_iso_datetime(dt_str):
-    """Convierte un string ISO a un objeto datetime con zona horaria UTC."""
+
+def parse_iso_datetime(valor):
+    if not isinstance(valor, str):
+        return None
     try:
-        dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=pytz.UTC)
-        return dt
+        fecha = datetime.fromisoformat(valor.replace("Z", "+00:00"))
     except ValueError:
         return None
+    return asegurar_datetime_utc(fecha)
+
+
+def bloquear_agendas(psicologo_id, paciente_id=None):
+    """Serializa cambios de agenda en PostgreSQL para evitar doble reserva."""
+    if db.session.get_bind().dialect.name != "postgresql":
+        return
+
+    claves = [int(psicologo_id) * 2]
+    if paciente_id is not None:
+        claves.append(int(paciente_id) * 2 + 1)
+
+    for clave in sorted(set(claves)):
+        db.session.execute(
+            text("SELECT pg_advisory_xact_lock(:clave)"),
+            {"clave": clave},
+        )

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { citasApi } from '../../servicios/citasApi';
 import { useCitas } from '../../hooks/useCitas';
 import InsigniaEstado from '../../componentes/citas/InsigniaEstado';
 import api from '../../servicios/api';
 import { usarAutenticacion } from '../../contexto/ContextoAutenticacion';
+import { Video } from 'lucide-react';
 
 export default function PaginaDetalleCita() {
   const { id } = useParams();
@@ -113,6 +114,20 @@ export default function PaginaDetalleCita() {
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Motivo de consulta</h3>
             <p className="bg-gray-50 dark:bg-gray-700 p-4 rounded dark:text-gray-200 whitespace-pre-wrap">{cita.motivo_consulta}</p>
+          </div>
+        )}
+
+        {cita.modalidad === 'VIRTUAL' && cita.estado === 'CONFIRMADA' && (esPaciente || esPsicologo) && (
+          <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-900 dark:bg-blue-950/30">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="flex items-center gap-2 font-bold text-blue-900 dark:text-blue-100"><Video size={19} /> Teleconsulta por Zoom</h3>
+                <p className="mt-1 text-sm text-blue-700 dark:text-blue-200">El acceso se habilitará pocos minutos antes de la hora acordada.</p>
+              </div>
+              <Link to={`/teleconsultas/${cita.id}`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 font-bold text-white hover:bg-blue-700">
+                <Video size={17} /> Abrir sala virtual
+              </Link>
+            </div>
           </div>
         )}
 

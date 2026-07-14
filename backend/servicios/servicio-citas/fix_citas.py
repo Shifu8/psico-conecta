@@ -1,18 +1,4 @@
-﻿# Archivo: fix_citas.py
-# Descripción: Módulo de lógica de negocio, rutas o configuración.
-# Módulo: Servicio Citas
-
-from app import create_app, db
-from app.modelos.cita import Cita
-from datetime import timedelta
-
-app = create_app()
-with app.app_context():
-    citas = Cita.query.all()
-    for cita in citas:
-        # Prevent fixing twice
-        if cita.fecha_hora_inicio.hour >= 13:
-            cita.fecha_hora_inicio -= timedelta(hours=5)
-            cita.fecha_hora_fin -= timedelta(hours=5)
-    db.session.commit()
-    print("Citas arregladas")
+raise SystemExit(
+    "Este script antiguo fue deshabilitado porque modificaba horas de citas sin una migración segura. "
+    "El módulo corregido gestiona las zonas horarias automáticamente."
+)

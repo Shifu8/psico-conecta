@@ -19,7 +19,8 @@ import PlantillaPanel from "../plantillas/PlantillaPanel";
 import PaginaCitas from "../paginas/citas/PaginaCitas";
 import PaginaAgendarCita from "../paginas/citas/PaginaAgendarCita";
 import PaginaDetalleCita from "../paginas/citas/PaginaDetalleCita";
-import GestorDisponibilidad from "../componentes/citas/GestorDisponibilidad";
+import PaginaTeleconsultas from "../paginas/teleconsultas/PaginaTeleconsultas";
+import PaginaSalaTeleconsulta from "../paginas/teleconsultas/PaginaSalaTeleconsulta";
 
 export default function RutasAplicacion() {
   return (
@@ -39,13 +40,17 @@ export default function RutasAplicacion() {
           <Route path="/citas" element={<PaginaCitas />} />
           <Route path="/citas/:id" element={<PaginaDetalleCita />} />
 
+          <Route element={<RutaRol roles={["PATIENT", "PSYCHOLOGIST"]} />}>
+            <Route path="/teleconsultas" element={<PaginaTeleconsultas />} />
+            <Route path="/teleconsultas/:citaId" element={<PaginaSalaTeleconsulta />} />
+          </Route>
+
           <Route element={<RutaRol roles={["ADMIN"]} />}>
             <Route path="/administrador" element={<PanelAdministrador />} />
             <Route path="/administrador/disponibilidad" element={<PaginaDisponibilidadAdmin />} />
           </Route>
           <Route element={<RutaRol roles={["PSYCHOLOGIST"]} />}>
             <Route path="/psicologo" element={<PanelPsicologo />} />
-            <Route path="/psicologo/disponibilidad" element={<GestorDisponibilidad />} />
             <Route path="/psicologo/telemetria/:patientId" element={<DashboardPsicologo />} />
           </Route>
           <Route element={<RutaRol roles={["PATIENT"]} />}>

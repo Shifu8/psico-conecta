@@ -1,21 +1,35 @@
 import { useState, useCallback } from 'react';
 import { citasApi } from '../servicios/citasApi';
 
+const mensajeError = (err, defecto) =>
+    err.response?.data?.mensaje || err.response?.data?.message || defecto;
+
 export const useDisponibilidad = () => {
     const [slots, setSlots] = useState([]);
     const [bloques, setBloques] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    const limpiarSlots = useCallback(() => {
+        setSlots([]);
+        setError(null);
+    }, []);
+
     const fetchSlots = useCallback(async (psicologoId, fecha) => {
         setLoading(true);
         setError(null);
+        setSlots([]);
         try {
             const response = await citasApi.getSlots(psicologoId, fecha);
-            setSlots(response.data.slots);
-            return response.data.slots;
+            const nuevosSlots = response.data?.slots || [];
+            setSlots(nuevosSlots);
+            return nuevosSlots;
         } catch (err) {
-            setError('No pudimos cargar los horarios en este momento. Inténtalo de nuevo más tarde.');
+            const mensaje = mensajeError(
+                err,
+                'No pudimos cargar los horarios en este momento. Inténtalo nuevamente.'
+            );
+            setError(mensaje);
             return [];
         } finally {
             setLoading(false);
@@ -27,10 +41,11 @@ export const useDisponibilidad = () => {
         setError(null);
         try {
             const response = await citasApi.getDisponibilidad(psicologoId);
-            setBloques(response.data);
-            return response.data;
+            const nuevosBloques = response.data || [];
+            setBloques(nuevosBloques);
+            return nuevosBloques;
         } catch (err) {
-            setError('No logramos cargar tu configuración de disponibilidad en este momento.');
+            setError(mensajeError(err, 'No logramos cargar la disponibilidad.'));
             return [];
         } finally {
             setLoading(false);
@@ -43,6 +58,7 @@ export const useDisponibilidad = () => {
         loading,
         error,
         fetchSlots,
-        fetchBloques
+        fetchBloques,
+        limpiarSlots,
     };
 };

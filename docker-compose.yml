@@ -63,12 +63,19 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/psicoconecta
       DB_SCHEMA: citas_schema
       USERS_SERVICE_URL: http://servicio-usuarios:5001
+      VALIDAR_USUARIO_REMOTO: "true"
+      TIMEZONE: America/Guayaquil
+      CORS_ORIGINS: http://localhost:5173
+      TELECONSULTA_SERVICE_URL: http://servicio-teleconsulta:5003
+      TELECONSULTA_INTERNAL_TOKEN: ${TELECONSULTA_INTERNAL_TOKEN:-change_this_internal_service_token}
     command: sh -c "pip install --no-cache-dir -r requirements.txt && python datos_iniciales.py && python ejecutar.py"
     ports:
       - "5002:5002"
     depends_on:
       postgres:
         condition: service_healthy
+      servicio-usuarios:
+        condition: service_started
 
   servicio-teleconsulta:
     image: python:3.11-slim
@@ -77,15 +84,36 @@ services:
     volumes:
       - ./backend:/backend:ro
     env_file:
+      - ./backend/servicios/servicio-teleconsulta/.env.example
       - ./.env.example
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/psicoconecta
-    command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
+      DB_SCHEMA: teleconsulta_schema
+      USERS_SERVICE_URL: http://servicio-usuarios:5001
+      CITAS_SERVICE_URL: http://servicio-citas:5002
+      VALIDAR_USUARIO_REMOTO: "true"
+      TELECONSULTA_INTERNAL_TOKEN: ${TELECONSULTA_INTERNAL_TOKEN:-change_this_internal_service_token}
+      TIMEZONE: America/Guayaquil
+      CORS_ORIGINS: http://localhost:5173
+      ZOOM_ACCOUNT_ID: ${ZOOM_ACCOUNT_ID:-}
+      ZOOM_CLIENT_ID: ${ZOOM_CLIENT_ID:-}
+      ZOOM_CLIENT_SECRET: ${ZOOM_CLIENT_SECRET:-}
+      ZOOM_HOST_USER_ID: ${ZOOM_HOST_USER_ID:-}
+      ZOOM_HOSTS_JSON: "${ZOOM_HOSTS_JSON:-}"
+      ZOOM_WEBHOOK_SECRET_TOKEN: ${ZOOM_WEBHOOK_SECRET_TOKEN:-}
+      ACCESO_ANTES_PACIENTE_MIN: ${ACCESO_ANTES_PACIENTE_MIN:-10}
+      ACCESO_ANTES_PSICOLOGO_MIN: ${ACCESO_ANTES_PSICOLOGO_MIN:-15}
+      ACCESO_DESPUES_FIN_MIN: ${ACCESO_DESPUES_FIN_MIN:-30}
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python ejecutar.py"
     ports:
       - "5003:5003"
     depends_on:
       postgres:
         condition: service_healthy
+      servicio-usuarios:
+        condition: service_started
+      servicio-citas:
+        condition: service_started
 
   servicio-pagos:
     image: python:3.11-slim
@@ -140,6 +168,7 @@ services:
     depends_on:
       - servicio-usuarios
       - servicio-citas
+      - servicio-teleconsulta
 
   nginx:
     image: nginx:alpine

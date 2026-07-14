@@ -39,7 +39,10 @@ export const obtenerCitas = async () => {
   return Array.isArray(data) ? data : [];
 };
 
-export const obtenerSesionesTeleconsulta = () => Promise.resolve([]);
+export const obtenerSesionesTeleconsulta = async () => {
+  const { data } = await clientes.teleconsulta.get("/api/teleconsultas/mis-sesiones");
+  return Array.isArray(data) ? data : [];
+};
 export const obtenerPagos = () => Promise.resolve([]);
 export const obtenerEmociones = () => Promise.resolve([]);
 export const obtenerLecturasIot = () => Promise.resolve([]);

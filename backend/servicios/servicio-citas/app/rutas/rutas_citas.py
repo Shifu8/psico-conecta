@@ -1,112 +1,172 @@
-# Archivo: rutas_citas.py
-# Descripción: Módulo de lógica de negocio, rutas o configuración.
-# Módulo: Servicio Citas
+from datetime import datetime
 
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import get_jwt
-from app.utilidades.autenticacion import requiere_rol, _extraer_rol
-from app.servicios.servicio_cita import ServicioCita
+from flask import Blueprint, g, jsonify, request
+
+from app.esquemas.esquema_cita import (
+    ActualizarNotasSchema,
+    AgendarCitaSchema,
+    CancelarCitaSchema,
+    CitaSchema,
+    ESTADOS,
+    HistorialCambioCitaSchema,
+    ReprogramarCitaSchema,
+)
 from app.modelos.cita import Cita
-from app.esquemas.esquema_cita import CitaSchema, AgendarCitaSchema, CancelarCitaSchema
-from app.utilidades.helpers import parse_iso_datetime
+from app.servicios.servicio_cita import ServicioCita
+from app.utilidades.autenticacion import requiere_rol
+from app.utilidades.errores import ErrorDominio
+from app.utilidades.tiempo import asegurar_datetime_utc
 
-bp_citas = Blueprint('citas', __name__)
+
+bp_citas = Blueprint("citas", __name__)
 cita_schema = CitaSchema()
-citas_list_schema = CitaSchema(many=True)
+citas_schema = CitaSchema(many=True)
+historial_schema = HistorialCambioCitaSchema(many=True)
 
-@bp_citas.route('', methods=['POST'])
-@requiere_rol('PACIENTE')
+
+def _json():
+    return request.get_json(silent=True) or {}
+
+
+@bp_citas.post("")
+@requiere_rol("PACIENTE")
 def agendar_cita():
-    claims = get_jwt()
-    paciente_id = claims.get('sub')
-    
-    schema = AgendarCitaSchema()
-    data = request.json
-    
-    errors = schema.validate(data)
-    if errors:
-        return jsonify(errors), 400
-        
-    # Pre-parse date for logic
-    if 'fecha_hora_inicio' in data:
-        dt = parse_iso_datetime(data['fecha_hora_inicio'])
-        if dt:
-            data['fecha_hora_inicio'] = dt
-        
-    cita, error = ServicioCita.agendar_cita(paciente_id, data)
-    if error:
-        return jsonify({"error": error}), 400
-        
+    datos = AgendarCitaSchema().load(_json())
+    cita = ServicioCita.agendar_cita(g.usuario_id, datos)
     return jsonify(cita_schema.dump(cita)), 201
 
-@bp_citas.route('', methods=['GET'])
-@requiere_rol('ADMIN')
+
+@bp_citas.get("")
+@requiere_rol("ADMIN")
 def obtener_todas_las_citas():
-    estado = request.args.get('estado')
-    query = Cita.query
+    consulta = Cita.query
+    estado = request.args.get("estado")
     if estado:
-        query = query.filter_by(estado=estado)
-    citas = query.order_by(Cita.fecha_hora_inicio.desc()).all()
-    return jsonify(citas_list_schema.dump(citas)), 200
+        estado = estado.upper()
+        if estado not in ESTADOS:
+            raise ErrorDominio("El filtro de estado no es válido.")
+        consulta = consulta.filter(Cita.estado == estado)
 
-@bp_citas.route('/mis-citas', methods=['GET'])
-@requiere_rol('PACIENTE', 'PSICOLOGO')
+    psicologo_id = request.args.get("psicologo_id", type=int)
+    paciente_id = request.args.get("paciente_id", type=int)
+    if psicologo_id:
+        consulta = consulta.filter(Cita.psicologo_id == psicologo_id)
+    if paciente_id:
+        consulta = consulta.filter(Cita.paciente_id == paciente_id)
+
+    for parametro, operador in (
+        ("fecha_desde", lambda fecha: Cita.fecha_hora_inicio >= fecha),
+        ("fecha_hasta", lambda fecha: Cita.fecha_hora_inicio <= fecha),
+    ):
+        valor = request.args.get(parametro)
+        if valor:
+            try:
+                fecha = asegurar_datetime_utc(
+                    datetime.fromisoformat(valor.replace("Z", "+00:00"))
+                )
+            except ValueError:
+                raise ErrorDominio(f"El parámetro {parametro} no es una fecha válida.") from None
+            consulta = consulta.filter(operador(fecha))
+
+    citas = consulta.order_by(Cita.fecha_hora_inicio.desc()).all()
+    return jsonify(citas_schema.dump(citas))
+
+
+@bp_citas.get("/mis-citas")
+@requiere_rol("PACIENTE", "PSICOLOGO")
 def mis_citas():
-    claims = get_jwt()
-    user_id = claims.get('sub')
-    rol = _extraer_rol(claims)
-    
-    if rol == 'PACIENTE':
-        citas = Cita.query.filter_by(paciente_id=user_id).order_by(Cita.fecha_hora_inicio.desc()).all()
+    consulta = Cita.query
+    if g.usuario_rol == "PACIENTE":
+        consulta = consulta.filter(Cita.paciente_id == g.usuario_id)
     else:
-        citas = Cita.query.filter_by(psicologo_id=user_id).order_by(Cita.fecha_hora_inicio.desc()).all()
-        
-    return jsonify(citas_list_schema.dump(citas)), 200
+        consulta = consulta.filter(Cita.psicologo_id == g.usuario_id)
 
-@bp_citas.route('/<uuid:cita_id>', methods=['GET'])
-@requiere_rol('PACIENTE', 'PSICOLOGO', 'ADMIN')
+    estado = request.args.get("estado")
+    if estado:
+        estado = estado.upper()
+        if estado not in ESTADOS:
+            raise ErrorDominio("El filtro de estado no es válido.")
+        consulta = consulta.filter(Cita.estado == estado)
+
+    citas = consulta.order_by(Cita.fecha_hora_inicio.desc()).all()
+    return jsonify(citas_schema.dump(citas))
+
+
+@bp_citas.get("/<uuid:cita_id>")
+@requiere_rol("PACIENTE", "PSICOLOGO", "ADMIN")
 def obtener_cita(cita_id):
-    claims = get_jwt()
-    user_id = claims.get('sub')
-    rol = _extraer_rol(claims)
-    
-    cita = Cita.query.get(cita_id)
-    if not cita:
-        return jsonify({"error": "Cita no encontrada"}), 404
-        
-    if rol == 'PACIENTE' and cita.paciente_id != user_id:
-        return jsonify({"error": "No tienes acceso a esta cita"}), 403
-    if rol == 'PSICOLOGO' and cita.psicologo_id != user_id:
-        return jsonify({"error": "No tienes acceso a esta cita"}), 403
-        
-    return jsonify(cita_schema.dump(cita)), 200
+    cita = ServicioCita.obtener(cita_id)
+    ServicioCita.verificar_acceso(cita, g.usuario_id, g.usuario_rol)
+    return jsonify(cita_schema.dump(cita))
 
-@bp_citas.route('/<uuid:cita_id>/confirmar', methods=['PUT'])
-@requiere_rol('PSICOLOGO')
+
+@bp_citas.put("/<uuid:cita_id>/confirmar")
+@requiere_rol("PSICOLOGO")
 def confirmar_cita(cita_id):
-    claims = get_jwt()
-    user_id = claims.get('sub')
-    
-    cita, error = ServicioCita.cambiar_estado(cita_id, 'CONFIRMADA', user_id, 'PSICOLOGO')
-    if error:
-        return jsonify({"error": error}), 400
-    return jsonify(cita_schema.dump(cita)), 200
+    cita = ServicioCita.cambiar_estado(
+        cita_id, "CONFIRMAR", g.usuario_id, g.usuario_rol
+    )
+    return jsonify(cita_schema.dump(cita))
 
-@bp_citas.route('/<uuid:cita_id>/cancelar', methods=['PUT'])
-@requiere_rol('PACIENTE', 'PSICOLOGO', 'ADMIN')
+
+@bp_citas.put("/<uuid:cita_id>/cancelar")
+@requiere_rol("PACIENTE", "PSICOLOGO", "ADMIN")
 def cancelar_cita(cita_id):
-    claims = get_jwt()
-    user_id = claims.get('sub')
-    rol = _extraer_rol(claims)
-    
-    schema = CancelarCitaSchema()
-    errors = schema.validate(request.json)
-    if errors:
-        return jsonify(errors), 400
-        
-    motivo = request.json.get('motivo')
-    
-    cita, error = ServicioCita.cambiar_estado(cita_id, 'CANCELADA', user_id, rol, motivo)
-    if error:
-        return jsonify({"error": error}), 400
-    return jsonify(cita_schema.dump(cita)), 200
+    datos = CancelarCitaSchema().load(_json())
+    cita = ServicioCita.cambiar_estado(
+        cita_id,
+        "CANCELAR",
+        g.usuario_id,
+        g.usuario_rol,
+        motivo=datos["motivo"],
+    )
+    return jsonify(cita_schema.dump(cita))
+
+
+@bp_citas.put("/<uuid:cita_id>/reprogramar")
+@requiere_rol("PACIENTE", "PSICOLOGO", "ADMIN")
+def reprogramar_cita(cita_id):
+    datos = ReprogramarCitaSchema().load(_json())
+    cita = ServicioCita.reprogramar(
+        cita_id,
+        datos["nueva_fecha_hora_inicio"],
+        g.usuario_id,
+        g.usuario_rol,
+    )
+    return jsonify(cita_schema.dump(cita))
+
+
+@bp_citas.put("/<uuid:cita_id>/completar")
+@requiere_rol("PSICOLOGO")
+def completar_cita(cita_id):
+    cita = ServicioCita.cambiar_estado(
+        cita_id, "COMPLETAR", g.usuario_id, g.usuario_rol
+    )
+    return jsonify(cita_schema.dump(cita))
+
+
+@bp_citas.put("/<uuid:cita_id>/no-asistida")
+@requiere_rol("PSICOLOGO")
+def marcar_no_asistida(cita_id):
+    cita = ServicioCita.cambiar_estado(
+        cita_id, "NO_ASISTIDA", g.usuario_id, g.usuario_rol
+    )
+    return jsonify(cita_schema.dump(cita))
+
+
+@bp_citas.put("/<uuid:cita_id>/notas")
+@requiere_rol("PSICOLOGO")
+def actualizar_notas(cita_id):
+    datos = ActualizarNotasSchema().load(_json())
+    cita = ServicioCita.actualizar_notas(
+        cita_id, datos["notas"], g.usuario_id, g.usuario_rol
+    )
+    return jsonify(cita_schema.dump(cita))
+
+
+@bp_citas.get("/<uuid:cita_id>/historial")
+@requiere_rol("PACIENTE", "PSICOLOGO", "ADMIN")
+def obtener_historial(cita_id):
+    cita = ServicioCita.obtener(cita_id)
+    ServicioCita.verificar_acceso(cita, g.usuario_id, g.usuario_rol)
+    return jsonify(historial_schema.dump(ServicioCita.historial(cita_id)))

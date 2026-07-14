@@ -23,7 +23,7 @@ import EncabezadoPanel from "./EncabezadoPanel";
 const modulos = [
   { titulo: "Próximas citas", texto: "Organiza tus próximos espacios de atención.", detalle: "Consulta tu agenda", icono: CalendarDays, ruta: "/citas" },
   { titulo: "Mis pacientes", texto: "Encuentra la información importante de cada proceso.", detalle: "Gestiona tus pacientes", icono: UsersRound },
-  { titulo: "Sesiones virtuales", texto: "Accede a tus encuentros programados con comodidad.", detalle: "Revisa tus sesiones", icono: Video },
+  { titulo: "Sesiones virtuales", texto: "Accede a tus encuentros programados con comodidad.", detalle: "Revisa tus sesiones", icono: Video, ruta: "/teleconsultas" },
   { titulo: "Progreso emocional", texto: "Consulta el seguimiento para acompañar con continuidad.", detalle: "Observa la evolución", icono: Activity },
 ];
 
@@ -138,7 +138,7 @@ export default function PanelPsicologo() {
         <Tarjeta titulo="Citas hoy" valor={citasHoy.length} detalle={proximaCita ? `Próxima ${formatearHora(fechaCita(proximaCita))}` : "Sin próxima sesión"} icono={Clock3} />
         <Tarjeta titulo="Pacientes" valor={pacientes.length} detalle="Asignados por citas" icono={UsersRound} />
         <Tarjeta titulo="Notas pendientes" valor={notasPendientes} detalle="Observaciones por cerrar" icono={FileText} />
-        <Tarjeta titulo="Teleconsultas" valor={sesionesProfesional.length} detalle="Sesiones vinculadas" icono={Video} />
+        <Tarjeta titulo="Teleconsultas" valor={sesionesProfesional.length} detalle="Sesiones vinculadas" icono={Video} ruta="/teleconsultas" />
       </section>
 
       <section className="mt-6 grid gap-5 xl:grid-cols-[.95fr_1.05fr]">
@@ -273,15 +273,16 @@ export default function PanelPsicologo() {
   );
 }
 
-function Tarjeta({ titulo, valor, detalle, icono: Icono }) {
-  return (
-    <article className="panel p-5">
+function Tarjeta({ titulo, valor, detalle, icono: Icono, ruta }) {
+  const contenido = (
+    <article className="panel h-full p-5 transition hover:-translate-y-0.5 hover:shadow-lg">
       <span className="icono-panel"><Icono size={21} /></span>
       <p className="mt-5 text-3xl font-black text-slate-900 dark:text-white">{valor}</p>
       <p className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{titulo}</p>
       <p className="mt-1 text-xs text-slate-400">{detalle}</p>
     </article>
   );
+  return ruta ? <Link to={ruta} className="block h-full">{contenido}</Link> : contenido;
 }
 
 function DatoClaro({ titulo, valor }) {

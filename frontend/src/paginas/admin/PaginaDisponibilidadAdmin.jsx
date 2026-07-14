@@ -4,6 +4,12 @@ import api from "../../servicios/api";
 import EncabezadoPanel from "../paneles/EncabezadoPanel";
 import { CalendarX2, Trash2 } from "lucide-react";
 
+const fechaLocalISO = () => {
+  const ahora = new Date();
+  const desplazamiento = ahora.getTimezoneOffset() * 60000;
+  return new Date(ahora.getTime() - desplazamiento).toISOString().slice(0, 10);
+};
+
 export default function PaginaDisponibilidadAdmin() {
   const [psicologos, setPsicologos] = useState([]);
   const [psicologoId, setPsicologoId] = useState("");
@@ -66,7 +72,7 @@ export default function PaginaDisponibilidadAdmin() {
       setMotivo("");
       cargarExcepciones();
     } catch (err) {
-      setError(err.response?.data?.error || "Ocurrió un error al crear el bloqueo.");
+      setError(err.response?.data?.mensaje || err.response?.data?.message || "Ocurrió un error al crear el bloqueo.");
     }
   };
 
@@ -83,8 +89,8 @@ export default function PaginaDisponibilidadAdmin() {
   return (
     <>
       <EncabezadoPanel
-        titulo="Gestión de Disponibilidad"
-        descripcion="Bloquea fechas específicas para los profesionales (vacaciones, emergencias, etc)."
+        titulo="Fechas no disponibles"
+        descripcion="Registra únicamente los días en los que un psicólogo no podrá recibir citas."
       />
 
       <div className="mt-8 flex flex-col gap-8 lg:flex-row">
@@ -107,7 +113,7 @@ export default function PaginaDisponibilidadAdmin() {
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="mb-4 text-lg font-bold text-slate-800 dark:text-white">Bloquear Fecha</h2>
+            <h2 className="mb-4 text-lg font-bold text-slate-800 dark:text-white">Añadir fecha no disponible</h2>
             <form onSubmit={manejarSubmit}>
               <div className="mb-4">
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Fecha</label>
@@ -116,6 +122,7 @@ export default function PaginaDisponibilidadAdmin() {
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
                   className="campo mt-1 w-full text-slate-700 dark:text-slate-200"
+                  min={fechaLocalISO()}
                   required
                 />
               </div>
