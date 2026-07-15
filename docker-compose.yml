@@ -68,6 +68,8 @@ services:
       CORS_ORIGINS: http://localhost:5173
       TELECONSULTA_SERVICE_URL: http://servicio-teleconsulta:5003
       TELECONSULTA_INTERNAL_TOKEN: ${TELECONSULTA_INTERNAL_TOKEN:-change_this_internal_service_token}
+      PAGOS_SERVICE_URL: http://servicio-pagos:5004
+      PAGOS_INTERNAL_TOKEN: ${PAGOS_INTERNAL_TOKEN:-change_this_payments_internal_token}
     command: sh -c "pip install --no-cache-dir -r requirements.txt && python datos_iniciales.py && python ejecutar.py"
     ports:
       - "5002:5002"
@@ -104,6 +106,9 @@ services:
       ACCESO_ANTES_PACIENTE_MIN: ${ACCESO_ANTES_PACIENTE_MIN:-10}
       ACCESO_ANTES_PSICOLOGO_MIN: ${ACCESO_ANTES_PSICOLOGO_MIN:-15}
       ACCESO_DESPUES_FIN_MIN: ${ACCESO_DESPUES_FIN_MIN:-30}
+      PAGOS_SERVICE_URL: http://servicio-pagos:5004
+      PAGOS_INTERNAL_TOKEN: ${PAGOS_INTERNAL_TOKEN:-change_this_payments_internal_token}
+      REQUIRE_PAYMENT_FOR_TELECONSULTA: ${REQUIRE_PAYMENT_FOR_TELECONSULTA:-false}
     command: sh -c "pip install --no-cache-dir -r requirements.txt && python ejecutar.py"
     ports:
       - "5003:5003"
@@ -122,15 +127,35 @@ services:
     volumes:
       - ./backend:/backend:ro
     env_file:
+      - ./backend/servicios/servicio-pagos/.env.example
       - ./.env.example
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/psicoconecta
-    command: sh -c "pip install --no-cache-dir -r requirements.txt && python aplicacion.py"
+      DB_SCHEMA: pagos_schema
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change_this_jwt_secret_at_least_32_chars}
+      USERS_SERVICE_URL: http://servicio-usuarios:5001
+      CITAS_SERVICE_URL: http://servicio-citas:5002
+      VALIDAR_USUARIO_REMOTO: "true"
+      PAGOS_INTERNAL_TOKEN: ${PAGOS_INTERNAL_TOKEN:-change_this_payments_internal_token}
+      FRONTEND_URL: http://localhost:5173
+      CORS_ORIGINS: http://localhost:5173
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_MAX_NETWORK_RETRIES: ${STRIPE_MAX_NETWORK_RETRIES:-2}
+      DEFAULT_CONSULTATION_PRICE_CENTS: ${DEFAULT_CONSULTATION_PRICE_CENTS:-3000}
+      DEFAULT_CURRENCY: ${DEFAULT_CURRENCY:-USD}
+      CHECKOUT_EXPIRES_MINUTES: ${CHECKOUT_EXPIRES_MINUTES:-30}
+      AUTO_REFUND_ON_CANCEL: ${AUTO_REFUND_ON_CANCEL:-true}
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && python ejecutar.py"
     ports:
       - "5004:5004"
     depends_on:
       postgres:
         condition: service_healthy
+      servicio-usuarios:
+        condition: service_started
+      servicio-citas:
+        condition: service_started
 
   servicio-inteligencia-iot:
     image: python:3.11-slim
@@ -169,6 +194,7 @@ services:
       - servicio-usuarios
       - servicio-citas
       - servicio-teleconsulta
+      - servicio-pagos
 
   nginx:
     image: nginx:alpine

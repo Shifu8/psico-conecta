@@ -12,6 +12,7 @@ import {
   UserCheck,
   UsersRound,
   Video,
+  CreditCard,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -24,7 +25,7 @@ const modulos = [
   { titulo: "Próximas citas", texto: "Organiza tus próximos espacios de atención.", detalle: "Consulta tu agenda", icono: CalendarDays, ruta: "/citas" },
   { titulo: "Mis pacientes", texto: "Encuentra la información importante de cada proceso.", detalle: "Gestiona tus pacientes", icono: UsersRound },
   { titulo: "Sesiones virtuales", texto: "Accede a tus encuentros programados con comodidad.", detalle: "Revisa tus sesiones", icono: Video, ruta: "/teleconsultas" },
-  { titulo: "Progreso emocional", texto: "Consulta el seguimiento para acompañar con continuidad.", detalle: "Observa la evolución", icono: Activity },
+  { titulo: "Pagos de citas", texto: "Consulta el estado económico sin acceder a datos bancarios.", detalle: "Revisa los pagos", icono: CreditCard, ruta: "/pagos" },
 ];
 
 const estado = (item) => String(item?.estado || item?.status || "pendiente").toLowerCase();

@@ -90,5 +90,12 @@ def proxy_teleconsultas(subpath=""):
     return proxy_request(f"{SERVICIOS['teleconsulta']}/api/teleconsultas", subpath)
 
 
+@app.route("/api/pagos", methods=["GET", "POST", "PUT", "DELETE"])
+@app.route("/api/pagos/<path:subpath>", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+def proxy_pagos(subpath=""):
+    return proxy_request(f"{SERVICIOS['pagos']}/api/pagos", subpath)
+
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))

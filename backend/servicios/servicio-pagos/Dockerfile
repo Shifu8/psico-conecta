@@ -1,12 +1,11 @@
-﻿# Archivo: Dockerfile
-# Descripción: Receta de construcción de contenedor Docker.
-# Módulo: Servicio Pagos
-
+# Servicio de pagos PsicoConecta
 FROM python:3.11-slim
+
 WORKDIR /app
 COPY backend/requirements/ /requirements/
-COPY backend/servicios/servicio-pagos/ app/
-RUN pip install --no-cache-dir -r app/requirements.txt
+COPY backend/servicios/servicio-pagos/ /app/
+RUN pip install --no-cache-dir -r /requirements/pagos.txt
+
 ENV PORT=5004
 EXPOSE 5004
-CMD ["python", "app/aplicacion.py"]
+CMD ["python", "ejecutar.py"]

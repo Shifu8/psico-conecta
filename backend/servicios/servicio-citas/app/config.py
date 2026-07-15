@@ -31,6 +31,10 @@ class Config:
     TELECONSULTA_INTERNAL_TOKEN = os.getenv("TELECONSULTA_INTERNAL_TOKEN", "")
     TELECONSULTA_TIMEOUT = float(os.getenv("TELECONSULTA_TIMEOUT", "5"))
 
+    PAGOS_SERVICE_URL = os.getenv("PAGOS_SERVICE_URL", "http://localhost:5004").rstrip("/")
+    PAGOS_INTERNAL_TOKEN = os.getenv("PAGOS_INTERNAL_TOKEN", "")
+    PAGOS_TIMEOUT = float(os.getenv("PAGOS_TIMEOUT", "8"))
+
     TIMEZONE = os.getenv("TIMEZONE", "America/Guayaquil")
     CORS_ORIGINS = _origenes()
     JSON_SORT_KEYS = False

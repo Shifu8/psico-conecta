@@ -38,6 +38,10 @@ class Config:
     VALIDAR_USUARIO_REMOTO = _booleano("VALIDAR_USUARIO_REMOTO", False)
     INTERNAL_SERVICE_TOKEN = os.getenv("TELECONSULTA_INTERNAL_TOKEN", "")
 
+    PAGOS_SERVICE_URL = os.getenv("PAGOS_SERVICE_URL", "http://localhost:5004").rstrip("/")
+    PAGOS_INTERNAL_TOKEN = os.getenv("PAGOS_INTERNAL_TOKEN", "").strip()
+    REQUIRE_PAYMENT_FOR_TELECONSULTA = _booleano("REQUIRE_PAYMENT_FOR_TELECONSULTA", False)
+
     ZOOM_ACCOUNT_ID = os.getenv("ZOOM_ACCOUNT_ID", "").strip()
     ZOOM_CLIENT_ID = os.getenv("ZOOM_CLIENT_ID", "").strip()
     ZOOM_CLIENT_SECRET = os.getenv("ZOOM_CLIENT_SECRET", "").strip()

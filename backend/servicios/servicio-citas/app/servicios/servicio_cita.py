@@ -5,6 +5,7 @@ from app.servicios.servicio_disponibilidad import (
     ESTADOS_QUE_OCUPAN,
     ServicioDisponibilidad,
 )
+from app.servicios.servicio_pagos import NotificadorPagos
 from app.servicios.servicio_teleconsulta import NotificadorTeleconsulta
 from app.utilidades.autenticacion import validar_psicologo_activo
 from app.utilidades.errores import ErrorDominio
@@ -232,6 +233,7 @@ class ServicioCita:
             datos_anteriores=anterior,
         )
         db.session.commit()
+        NotificadorPagos.sincronizar(cita, usuario_id)
         NotificadorTeleconsulta.sincronizar(cita, usuario_id)
         return cita
 
@@ -306,6 +308,8 @@ class ServicioCita:
             motivo=f"Cita creada al reprogramar {cita_anterior.id}.",
         )
         db.session.commit()
+        NotificadorPagos.sincronizar(cita_anterior, usuario_id)
+        NotificadorPagos.sincronizar(nueva_cita, usuario_id)
         NotificadorTeleconsulta.sincronizar(cita_anterior, usuario_id)
         NotificadorTeleconsulta.sincronizar(nueva_cita, usuario_id)
         return nueva_cita

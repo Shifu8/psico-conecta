@@ -175,3 +175,44 @@ def test_webhook_valida_endpoint_y_finaliza_reunion(
 
     with app.app_context():
         assert SesionZoom.query.one().estado == "FINALIZADA"
+
+
+def test_acceso_puede_exigir_pago_confirmado(
+    cliente, token, app, cita_virtual_confirmada, monkeypatch
+):
+    from app.servicios.cliente_pagos import ClientePagos
+
+    cliente.post(
+        "/api/teleconsultas/interna/citas/sincronizar",
+        json={"cita": cita_virtual_confirmada},
+        headers=cabecera_interna(),
+    )
+    monkeypatch.setattr(
+        ClienteCitas,
+        "obtener_cita",
+        staticmethod(lambda _id: cita_virtual_confirmada),
+    )
+    monkeypatch.setattr(
+        ClientePagos,
+        "estado_cita",
+        staticmethod(lambda _id: {"pagado": False, "estado": "PENDIENTE"}),
+    )
+    app.config["REQUIRE_PAYMENT_FOR_TELECONSULTA"] = True
+
+    respuesta = cliente.post(
+        f"/api/teleconsultas/cita/{cita_virtual_confirmada['id']}/acceso",
+        headers=cabecera(token(20, "PATIENT")),
+    )
+    assert respuesta.status_code == 402
+    assert respuesta.json["error"] == "pago_requerido"
+
+    monkeypatch.setattr(
+        ClientePagos,
+        "estado_cita",
+        staticmethod(lambda _id: {"pagado": True, "estado": "PAGADO"}),
+    )
+    permitido = cliente.post(
+        f"/api/teleconsultas/cita/{cita_virtual_confirmada['id']}/acceso",
+        headers=cabecera(token(20, "PATIENT")),
+    )
+    assert permitido.status_code == 200
