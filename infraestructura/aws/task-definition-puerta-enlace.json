@@ -21,6 +21,4 @@
     ],
     "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": "/ecs/psicoconecta-puerta-enlace", "awslogs-region": "us-east-2", "awslogs-stream-prefix": "ecs"}}
   }]
-
-
-
+}
