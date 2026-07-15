@@ -1,0 +1,31 @@
+{
+  "family": "psicoconecta-citas",
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "containerDefinitions": [{
+    "name": "citas",
+    "image": "ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/citas:latest",
+    "essential": true,
+    "command": ["sh", "-c", "python preparar_bd.py && python datos_iniciales.py && exec python ejecutar.py"],
+    "portMappings": [{"name": "citas", "containerPort": 5002, "protocol": "tcp"}],
+    "environment": [
+      {"name": "PORT", "value": "5002"}, {"name": "DB_SCHEMA", "value": "citas_schema"},
+      {"name": "USERS_SERVICE_URL", "value": "http://usuarios:5001"},
+      {"name": "TELECONSULTA_SERVICE_URL", "value": "http://teleconsulta:5003"},
+      {"name": "PAGOS_SERVICE_URL", "value": "http://pagos:5004"},
+      {"name": "VALIDAR_USUARIO_REMOTO", "value": "true"},
+      {"name": "TIMEZONE", "value": "America/Guayaquil"},
+      {"name": "CORS_ORIGINS", "value": "https://d1wkhs3cq8vcom.cloudfront.net"}
+    ],
+    "secrets": [
+      {"name": "DATABASE_URL", "valueFrom": "psicoconecta/DATABASE_URL"},
+      {"name": "JWT_SECRET_KEY", "valueFrom": "psicoconecta/JWT_SECRET_KEY"},
+      {"name": "TELECONSULTA_INTERNAL_TOKEN", "valueFrom": "psicoconecta/TELECONSULTA_INTERNAL_TOKEN"},
+      {"name": "PAGOS_INTERNAL_TOKEN", "valueFrom": "psicoconecta/PAGOS_INTERNAL_TOKEN"}
+    ],
+    "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": "/ecs/psicoconecta-citas", "awslogs-region": "us-east-2", "awslogs-stream-prefix": "ecs"}}
+  }]
+}

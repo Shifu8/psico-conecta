@@ -5,30 +5,22 @@
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "256",
   "memory": "512",
-  "containerDefinitions": [
-    {
-      "name": "puerta-enlace",
-      "image": "060899556466.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/puerta-enlace:latest",
-      "essential": true,
-      "portMappings": [{"containerPort": 5000, "protocol": "tcp"}],
-      "environment": [
-        {"name": "PORT", "value": "5000"},
-        {"name": "USUARIOS_SERVICE_URL", "value": "http://localhost:5001"},
-        {"name": "CITAS_SERVICE_URL", "value": "http://localhost:5002"},
-        {"name": "TELECONSULTA_SERVICE_URL", "value": "http://localhost:5003"},
-        {"name": "PAGOS_SERVICE_URL", "value": "http://localhost:5004"},
-        {"name": "IOT_SERVICE_URL", "value": "http://localhost:5005"}
-      ],
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/psicoconecta-puerta-enlace",
-          "awslogs-region": "us-east-2",
-          "awslogs-stream-prefix": "ecs"
-        }
-      }
-    }
-  ]
-}
+  "containerDefinitions": [{
+    "name": "puerta-enlace",
+    "image": "ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/puerta-enlace:latest",
+    "essential": true,
+    "portMappings": [{"name": "puerta-enlace", "containerPort": 5000, "protocol": "tcp"}],
+    "environment": [
+      {"name": "PORT", "value": "5000"},
+      {"name": "USUARIOS_SERVICE_URL", "value": "http://usuarios:5001"},
+      {"name": "CITAS_SERVICE_URL", "value": "http://citas:5002"},
+      {"name": "TELECONSULTA_SERVICE_URL", "value": "http://teleconsulta:5003"},
+      {"name": "PAGOS_SERVICE_URL", "value": "http://pagos:5004"},
+      {"name": "IOT_SERVICE_URL", "value": "http://iot:5005"},
+      {"name": "CORS_ORIGINS", "value": "https://d1wkhs3cq8vcom.cloudfront.net"}
+    ],
+    "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": "/ecs/psicoconecta-puerta-enlace", "awslogs-region": "us-east-2", "awslogs-stream-prefix": "ecs"}}
+  }]
+
 
 

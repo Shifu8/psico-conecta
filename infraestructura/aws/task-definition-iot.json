@@ -10,7 +10,14 @@
       "name": "iot",
       "image": "060899556466.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/iot:latest",
       "essential": true,
-      "portMappings": [{"containerPort": 5005, "protocol": "tcp"}],
+      "portMappings": [
+        {
+          "name": "iot",
+          "containerPort": 5005,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
       "environment": [
         {"name": "PORT", "value": "5005"},
         {"name": "AWS_REGION", "value": "us-east-2"},
@@ -19,6 +26,13 @@
         {"name": "DYNAMODB_TABLE_NOTIFICACIONES", "value": "notificaciones"},
         {"name": "DYNAMODB_TABLE_LOGS", "value": "logs_iot"}
       ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5005/health', timeout=3)\" || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      },
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
