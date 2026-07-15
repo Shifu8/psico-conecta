@@ -1,7 +1,7 @@
 {
   "family": "psicoconecta-usuarios",
   "networkMode": "awsvpc",
-  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::060899556466:role/ecsTaskExecutionRole",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
@@ -28,4 +28,6 @@
     ],
     "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": "/ecs/psicoconecta-usuarios", "awslogs-region": "us-east-2", "awslogs-stream-prefix": "ecs"}}
   }]
-}
+
+
+
