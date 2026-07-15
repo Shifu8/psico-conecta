@@ -1,14 +1,14 @@
 {
   "family": "psicoconecta-puerta-enlace",
   "networkMode": "awsvpc",
-  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::060899556466:role/ecsTaskExecutionRole",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "256",
   "memory": "512",
   "containerDefinitions": [
     {
       "name": "puerta-enlace",
-      "image": "ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/puerta-enlace:latest",
+      "image": "060899556466.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/puerta-enlace:latest",
       "essential": true,
       "portMappings": [{"containerPort": 5000, "protocol": "tcp"}],
       "environment": [
@@ -30,3 +30,5 @@
     }
   ]
 }
+
+

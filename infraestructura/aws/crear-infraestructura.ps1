@@ -1,4 +1,4 @@
-﻿# Archivo: crear-infraestructura.ps1
+# Archivo: crear-infraestructura.ps1
 # Descripción: Script de automatización de tareas y despliegue.
 # Módulo: Infraestructura
 
@@ -90,9 +90,11 @@ Write-Host "  - Subnets: $SUBNETS"
 
 # --- Secrets Manager ---
 Write-Host "`n7. Creando secrets en Secrets Manager..." -ForegroundColor Yellow
+$rand1 = -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 16 | % {[char]$_})
+$rand2 = -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 16 | % {[char]$_})
 $SECRETS = @(
-    @{name="psicoconecta/SECRET_KEY"; value="{\"SECRET_KEY\":\"change_this_secret_at_least_32_chars_$( -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 16 | % {[char]$_}))\"}"},
-    @{name="psicoconecta/JWT_SECRET_KEY"; value="{\"JWT_SECRET_KEY\":\"change_this_jwt_secret_at_least_32_chars_$( -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 16 | % {[char]$_}))\"}"}
+    @{name="psicoconecta/SECRET_KEY"; value='{"SECRET_KEY":"change_this_secret_at_least_32_chars_' + $rand1 + '"}'},
+    @{name="psicoconecta/JWT_SECRET_KEY"; value='{"JWT_SECRET_KEY":"change_this_jwt_secret_at_least_32_chars_' + $rand2 + '"}'}
 )
 foreach ($s in $SECRETS) {
     aws secretsmanager create-secret --name $s.name --secret-string $s.value --region $REGION 2>$null

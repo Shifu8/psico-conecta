@@ -1,4 +1,4 @@
-﻿# Archivo: desplegar-servicios.ps1
+# Archivo: desplegar-servicios.ps1
 # Descripción: Script de automatización de tareas y despliegue.
 # Módulo: Infraestructura
 
@@ -9,7 +9,8 @@ param(
 
 $ACCOUNT_ID = $(aws sts get-caller-identity --query Account --output text)
 $VPC_ID = aws ec2 describe-vpcs --filters "Name=isDefault,Values=true" --query "Vpcs[0].VpcId" --output text --region $Region
-$SUBNETS = aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" --query "Subnets[?MapPublicIpOnLaunch].[SubnetId]" --output text --region $Region
+$SUBNETS_RAW = aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" --query "Subnets[?MapPublicIpOnLaunch].[SubnetId]" --output text --region $Region
+$SUBNETS = ($SUBNETS_RAW -split "\s+" | Where-Object { $_ }) -join ","
 $SG_ID = aws ec2 describe-security-groups --group-names psicoconecta-alb-sg --query "SecurityGroups[0].GroupId" --output text --region $Region
 
 # Agregar reglas de inbound para puertos de backend en el SG

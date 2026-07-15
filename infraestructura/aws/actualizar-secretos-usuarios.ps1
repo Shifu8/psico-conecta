@@ -1,4 +1,4 @@
-﻿# Archivo: actualizar-secretos-usuarios.ps1
+# Archivo: actualizar-secretos-usuarios.ps1
 # Descripción: Script de automatización de tareas y despliegue.
 # Módulo: Infraestructura
 
@@ -36,23 +36,18 @@ function Actualizar-Secreto {
         return
     }
 
-    $existe = aws secretsmanager describe-secret `
-        --secret-id $Nombre `
-        --region $Region `
-        --query ARN `
-        --output text 2>$null
+    $oldAction = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
+    $existe = $null
+    $existe = aws secretsmanager describe-secret --secret-id $Nombre --region $Region --query ARN --output text 2>$null
+    $ErrorActionPreference = $oldAction
 
     if ($LASTEXITCODE -eq 0 -and $existe -and $existe -ne "None") {
-        aws secretsmanager put-secret-value `
-            --secret-id $Nombre `
-            --secret-string $Valor `
-            --region $Region | Out-Null
+        aws secretsmanager put-secret-value --secret-id $Nombre --secret-string $Valor --region $Region | Out-Null
         Write-Host "Actualizado $Nombre" -ForegroundColor Green
     } else {
-        aws secretsmanager create-secret `
-            --name $Nombre `
-            --secret-string $Valor `
-            --region $Region | Out-Null
+        $error.Clear()
+        aws secretsmanager create-secret --name $Nombre --secret-string $Valor --region $Region | Out-Null
         Write-Host "Creado $Nombre" -ForegroundColor Green
     }
 }

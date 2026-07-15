@@ -1,14 +1,14 @@
 {
   "family": "psicoconecta-usuarios",
   "networkMode": "awsvpc",
-  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::060899556466:role/ecsTaskExecutionRole",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
   "containerDefinitions": [
     {
       "name": "usuarios",
-      "image": "ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/usuarios:latest",
+      "image": "060899556466.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/usuarios:latest",
       "essential": true,
       "command": ["sh", "-c", "python app/datos_iniciales.py && exec python app/ejecutar.py"],
       "portMappings": [{"containerPort": 5001, "protocol": "tcp"}],
@@ -25,13 +25,13 @@
         {"name": "DATABASE_SCHEMA", "value": ""}
       ],
       "secrets": [
-        {"name": "SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/SECRET_KEY"},
-        {"name": "JWT_SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/JWT_SECRET_KEY"},
-        {"name": "GOOGLE_CLIENT_ID", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/GOOGLE_CLIENT_ID"},
-        {"name": "GOOGLE_CLIENT_SECRET", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/GOOGLE_CLIENT_SECRET"},
-        {"name": "GOOGLE_REFRESH_TOKEN", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/GOOGLE_REFRESH_TOKEN"},
-        {"name": "GOOGLE_SENDER_EMAIL", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/GOOGLE_SENDER_EMAIL"},
-        {"name": "TURNSTILE_SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-2:ACCOUNT_ID:secret:psicoconecta/TURNSTILE_SECRET_KEY"}
+        {"name": "SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/SECRET_KEY"},
+        {"name": "JWT_SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/JWT_SECRET_KEY"},
+        {"name": "GOOGLE_CLIENT_ID", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/GOOGLE_CLIENT_ID"},
+        {"name": "GOOGLE_CLIENT_SECRET", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/GOOGLE_CLIENT_SECRET"},
+        {"name": "GOOGLE_REFRESH_TOKEN", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/GOOGLE_REFRESH_TOKEN"},
+        {"name": "GOOGLE_SENDER_EMAIL", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/GOOGLE_SENDER_EMAIL"},
+        {"name": "TURNSTILE_SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/TURNSTILE_SECRET_KEY"}
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
@@ -44,3 +44,5 @@
     }
   ]
 }
+
+
