@@ -492,8 +492,9 @@ jobs:
           VITE_IOT_API_URL=$CLOUDFRONT_URL
           VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID:-339658076678-kah0e205d5asf6ufnlh009lh5i4g8u70.apps.googleusercontent.com}
           VITE_TURNSTILE_SITE_KEY=${VITE_TURNSTILE_SITE_KEY:-}
+          VITE_CAPTCHA_DESACTIVADO=true
           VITE_POSTHOG_KEY=${VITE_POSTHOG_KEY:-}
-          VITE_POSTHOG_HOST=https://us.i.posthog.com
+          VITE_POSTHOG_HOST=https://psico-conecta.brandon-medina.workers.dev/posthog
           EOF
           npm ci
           npm run build
@@ -513,3 +514,34 @@ jobs:
               --distribution-id "$DISTRIBUTION_ID" \
               --paths '/*' >/dev/null
           fi
+
+      - name: Upload frontend dist as artifact for Workers deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 1
+
+  deploy-workers:
+    runs-on: ubuntu-latest
+    needs:
+      - check-deploy-config
+      - deploy-frontend
+    if: ${{ needs.check-deploy-config.outputs.can_deploy == 'true' && secrets.CLOUDFLARE_API_TOKEN != '' }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: frontend
+          wranglerVersion: '4.100.0'
