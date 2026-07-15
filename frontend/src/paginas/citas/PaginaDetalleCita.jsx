@@ -6,6 +6,7 @@ import InsigniaEstado from '../../componentes/citas/InsigniaEstado';
 import api from '../../servicios/api';
 import { usarAutenticacion } from '../../contexto/ContextoAutenticacion';
 import { Video } from 'lucide-react';
+import ResumenPagoCita from '../../componentes/pagos/ResumenPagoCita';
 
 export default function PaginaDetalleCita() {
   const { id } = useParams();
@@ -116,6 +117,8 @@ export default function PaginaDetalleCita() {
             <p className="bg-gray-50 dark:bg-gray-700 p-4 rounded dark:text-gray-200 whitespace-pre-wrap">{cita.motivo_consulta}</p>
           </div>
         )}
+
+        <ResumenPagoCita cita={cita} esPaciente={esPaciente} />
 
         {cita.modalidad === 'VIRTUAL' && cita.estado === 'CONFIRMADA' && (esPaciente || esPsicologo) && (
           <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-900 dark:bg-blue-950/30">

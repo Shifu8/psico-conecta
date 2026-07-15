@@ -20,6 +20,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import AvatarUsuario from "../../componentes/AvatarUsuario";
 import BarraProgreso from "../../componentes/BarraProgreso";
 import { usarAutenticacion } from "../../contexto/ContextoAutenticacion";
@@ -292,7 +293,7 @@ export default function PanelAdministrador() {
   const operacion = [
     { titulo: "Citas hoy", valor: citasStats.hoy, detalle: `${citasStats.proximas} próximas`, icono: CalendarDays },
     { titulo: "Teleconsultas", valor: sesionesStats.creadas, detalle: `${sesionesStats.pendientes} pendientes`, icono: Video },
-    { titulo: "Pagos", valor: `$${pagosStats.total.toFixed(2)}`, detalle: `${pagosStats.pendientes} pendientes`, icono: CreditCard },
+    { titulo: "Pagos", valor: `$${pagosStats.total.toFixed(2)}`, detalle: `${pagosStats.pendientes} pendientes`, icono: CreditCard, ruta: "/administrador/pagos" },
     { titulo: "Bienestar IoT", valor: emociones.length + lecturasIot.length, detalle: `${alertasBienestar} alertas`, icono: Activity },
   ];
 
@@ -361,14 +362,17 @@ export default function PanelAdministrador() {
             </p>
           )}
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {operacion.map(({ titulo, valor, detalle, icono: Icono }) => (
-              <div key={titulo} className="rounded-2xl border border-slate-100 p-4 dark:border-slate-800">
-                <Icono size={19} className="text-blue-600 dark:text-blue-300" />
-                <p className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{valor}</p>
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{titulo}</p>
-                <p className="mt-1 text-xs text-slate-400">{detalle}</p>
-              </div>
-            ))}
+            {operacion.map(({ titulo, valor, detalle, icono: Icono, ruta }) => {
+              const contenido = (
+                <div className="h-full rounded-2xl border border-slate-100 p-4 transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800">
+                  <Icono size={19} className="text-blue-600 dark:text-blue-300" />
+                  <p className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{valor}</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{titulo}</p>
+                  <p className="mt-1 text-xs text-slate-400">{detalle}</p>
+                </div>
+              );
+              return ruta ? <Link key={titulo} to={ruta}>{contenido}</Link> : <div key={titulo}>{contenido}</div>;
+            })}
           </div>
         </article>
       </section>

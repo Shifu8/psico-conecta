@@ -8,6 +8,7 @@ from sqlalchemy import text
 
 from app import db
 from app.modelos import HistorialSesion, SesionZoom
+from app.servicios.cliente_pagos import ClientePagos
 from app.servicios.cliente_zoom import ClienteZoom
 from app.utilidades.errores import ErrorDominio
 from app.utilidades.tiempo import ahora_utc, asegurar_utc, iso_zoom
@@ -280,6 +281,18 @@ class ServicioTeleconsulta:
 
     @staticmethod
     def obtener_acceso(sesion, rol):
+        if current_app.config.get("REQUIRE_PAYMENT_FOR_TELECONSULTA", False):
+            estado_pago = ClientePagos.estado_cita(sesion.cita_id)
+            if not estado_pago.get("pagado"):
+                raise ErrorDominio(
+                    "La teleconsulta se habilitará cuando el pago de la cita esté confirmado.",
+                    402,
+                    "pago_requerido",
+                    {
+                        "cita_id": str(sesion.cita_id),
+                        "estado_pago": estado_pago.get("estado"),
+                    },
+                )
         if sesion.estado == "ERROR":
             raise ErrorDominio(
                 sesion.ultimo_error or "La reunión de Zoom no pudo prepararse.",

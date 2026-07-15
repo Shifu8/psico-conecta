@@ -25,7 +25,7 @@ const modulos = [
   { titulo: "Mi próxima cita", texto: "Revisa y organiza tus próximos espacios de atención.", detalle: "Consulta tu agenda", icono: CalendarDays, ruta: "/citas" },
   { titulo: "Sesión virtual", texto: "Ingresa a tus encuentros programados desde un solo lugar.", detalle: "Revisa tus sesiones", icono: Video, ruta: "/teleconsultas" },
   { titulo: "Mi bienestar", texto: "Mantén un seguimiento cercano de tu proceso emocional.", detalle: "Registra cómo te sientes", icono: Activity },
-  { titulo: "Mis pagos", texto: "Consulta la información económica de tu atención con claridad.", detalle: "Revisa tus pagos", icono: CreditCard },
+  { titulo: "Mis pagos", texto: "Consulta la información económica de tu atención con claridad.", detalle: "Revisa tus pagos", icono: CreditCard, ruta: "/pagos" },
 ];
 
 const estado = (item) => String(item?.estado || item?.status || "pendiente").toLowerCase();

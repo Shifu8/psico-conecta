@@ -1,0 +1,113 @@
+import json
+
+import stripe
+from flask import current_app
+from stripe import StripeClient
+
+from app.utilidades.errores import ErrorDominio
+
+
+class ClienteStripe:
+    def __init__(self):
+        clave = current_app.config.get("STRIPE_SECRET_KEY", "")
+        if not clave:
+            raise ErrorDominio(
+                "Stripe todavÃ­a no estÃ¡ configurado.",
+                503,
+                "stripe_no_configurado",
+            )
+        self.cliente = StripeClient(
+            clave,
+            max_network_retries=current_app.config.get("STRIPE_MAX_NETWORK_RETRIES", 2),
+        )
+
+    @staticmethod
+    def _dict(objeto):
+        if objeto is None:
+            return {}
+        if isinstance(objeto, dict):
+            return objeto
+        if hasattr(objeto, "to_dict_recursive"):
+            return objeto.to_dict_recursive()
+        try:
+            return dict(objeto)
+        except (TypeError, ValueError):
+            return {}
+
+    @staticmethod
+    def _traducir_error(error):
+        mensaje = getattr(error, "user_message", None) or str(error) or "Stripe rechazÃ³ la operaciÃ³n."
+        codigo = 502
+        if isinstance(error, stripe.CardError):
+            codigo = 402
+        elif isinstance(error, (stripe.AuthenticationError, stripe.PermissionError)):
+            codigo = 503
+        elif isinstance(error, stripe.InvalidRequestError):
+            codigo = 400
+        return ErrorDominio(mensaje, codigo, "error_stripe")
+
+    def crear_checkout(self, parametros, idempotency_key):
+        try:
+            sesion = self.cliente.v1.checkout.sessions.create(
+                params=parametros,
+                options={"idempotency_key": idempotency_key},
+            )
+            return self._dict(sesion)
+        except stripe.StripeError as error:
+            raise self._traducir_error(error) from None
+
+    def obtener_checkout(self, session_id):
+        try:
+            sesion = self.cliente.v1.checkout.sessions.retrieve(
+                session_id,
+                params={"expand": ["payment_intent.latest_charge"]},
+            )
+            return self._dict(sesion)
+        except stripe.StripeError as error:
+            raise self._traducir_error(error) from None
+
+    def expirar_checkout(self, session_id):
+        try:
+            sesion = self.cliente.v1.checkout.sessions.expire(session_id)
+            return self._dict(sesion)
+        except stripe.InvalidRequestError:
+            # Stripe rechaza expirar sesiones ya completadas o vencidas. No es fatal.
+            return {}
+        except stripe.StripeError as error:
+            raise self._traducir_error(error) from None
+
+    def crear_reembolso(self, payment_intent_id, monto_centavos, razon, metadata, idempotency_key):
+        parametros = {
+            "payment_intent": payment_intent_id,
+            "amount": int(monto_centavos),
+            "reason": razon,
+            "metadata": metadata,
+        }
+        try:
+            reembolso = self.cliente.v1.refunds.create(
+                params=parametros,
+                options={"idempotency_key": idempotency_key},
+            )
+            return self._dict(reembolso)
+        except stripe.StripeError as error:
+            raise self._traducir_error(error) from None
+
+    @staticmethod
+    def construir_evento(payload, firma, secreto):
+        if not secreto:
+            raise ErrorDominio(
+                "El secreto del webhook de Stripe no estÃ¡ configurado.",
+                503,
+                "webhook_no_configurado",
+            )
+        try:
+            evento = stripe.Webhook.construct_event(payload, firma, secreto)
+            if hasattr(evento, "to_dict_recursive"):
+                return evento.to_dict_recursive()
+            return json.loads(payload.decode("utf-8")) if isinstance(payload, bytes) else dict(evento)
+        except (ValueError, stripe.SignatureVerificationError):
+            raise ErrorDominio(
+                "La firma del webhook de Stripe no es vÃ¡lida.",
+                400,
+                "firma_webhook_invalida",
+            ) from None

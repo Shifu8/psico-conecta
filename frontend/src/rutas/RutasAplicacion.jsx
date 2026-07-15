@@ -21,6 +21,9 @@ import PaginaAgendarCita from "../paginas/citas/PaginaAgendarCita";
 import PaginaDetalleCita from "../paginas/citas/PaginaDetalleCita";
 import PaginaTeleconsultas from "../paginas/teleconsultas/PaginaTeleconsultas";
 import PaginaSalaTeleconsulta from "../paginas/teleconsultas/PaginaSalaTeleconsulta";
+import PaginaPagos from "../paginas/pagos/PaginaPagos";
+import PaginaResultadoPago from "../paginas/pagos/PaginaResultadoPago";
+import PaginaPagosAdmin from "../paginas/admin/PaginaPagosAdmin";
 
 export default function RutasAplicacion() {
   return (
@@ -39,6 +42,8 @@ export default function RutasAplicacion() {
           
           <Route path="/citas" element={<PaginaCitas />} />
           <Route path="/citas/:id" element={<PaginaDetalleCita />} />
+          <Route path="/pagos" element={<PaginaPagos />} />
+          <Route path="/pagos/resultado" element={<PaginaResultadoPago />} />
 
           <Route element={<RutaRol roles={["PATIENT", "PSYCHOLOGIST"]} />}>
             <Route path="/teleconsultas" element={<PaginaTeleconsultas />} />
@@ -48,6 +53,7 @@ export default function RutasAplicacion() {
           <Route element={<RutaRol roles={["ADMIN"]} />}>
             <Route path="/administrador" element={<PanelAdministrador />} />
             <Route path="/administrador/disponibilidad" element={<PaginaDisponibilidadAdmin />} />
+            <Route path="/administrador/pagos" element={<PaginaPagosAdmin />} />
           </Route>
           <Route element={<RutaRol roles={["PSYCHOLOGIST"]} />}>
             <Route path="/psicologo" element={<PanelPsicologo />} />
