@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r /requirements/pagos.txt
 
 ENV PORT=5004
 EXPOSE 5004
-CMD ["python", "ejecutar.py"]
+CMD ["sh", "-c", "python preparar_bd.py && exec python ejecutar.py"]

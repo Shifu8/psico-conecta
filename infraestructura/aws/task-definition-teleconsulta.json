@@ -1,0 +1,37 @@
+{
+  "family": "psicoconecta-teleconsulta",
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "containerDefinitions": [{
+    "name": "teleconsulta",
+    "image": "ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/teleconsulta:latest",
+    "essential": true,
+    "command": ["sh", "-c", "python preparar_bd.py && exec python ejecutar.py"],
+    "portMappings": [{"name": "teleconsulta", "containerPort": 5003, "protocol": "tcp"}],
+    "environment": [
+      {"name": "PORT", "value": "5003"}, {"name": "DB_SCHEMA", "value": "teleconsulta_schema"},
+      {"name": "USERS_SERVICE_URL", "value": "http://usuarios:5001"},
+      {"name": "CITAS_SERVICE_URL", "value": "http://citas:5002"},
+      {"name": "PAGOS_SERVICE_URL", "value": "http://pagos:5004"},
+      {"name": "VALIDAR_USUARIO_REMOTO", "value": "true"},
+      {"name": "REQUIRE_PAYMENT_FOR_TELECONSULTA", "value": "true"},
+      {"name": "TIMEZONE", "value": "America/Guayaquil"},
+      {"name": "CORS_ORIGINS", "value": "https://d1wkhs3cq8vcom.cloudfront.net"}
+    ],
+    "secrets": [
+      {"name": "DATABASE_URL", "valueFrom": "psicoconecta/DATABASE_URL"},
+      {"name": "JWT_SECRET_KEY", "valueFrom": "psicoconecta/JWT_SECRET_KEY"},
+      {"name": "TELECONSULTA_INTERNAL_TOKEN", "valueFrom": "psicoconecta/TELECONSULTA_INTERNAL_TOKEN"},
+      {"name": "PAGOS_INTERNAL_TOKEN", "valueFrom": "psicoconecta/PAGOS_INTERNAL_TOKEN"},
+      {"name": "ZOOM_ACCOUNT_ID", "valueFrom": "psicoconecta/ZOOM_ACCOUNT_ID"},
+      {"name": "ZOOM_CLIENT_ID", "valueFrom": "psicoconecta/ZOOM_CLIENT_ID"},
+      {"name": "ZOOM_CLIENT_SECRET", "valueFrom": "psicoconecta/ZOOM_CLIENT_SECRET"},
+      {"name": "ZOOM_HOST_USER_ID", "valueFrom": "psicoconecta/ZOOM_HOST_USER_ID"},
+      {"name": "ZOOM_WEBHOOK_SECRET_TOKEN", "valueFrom": "psicoconecta/ZOOM_WEBHOOK_SECRET_TOKEN"}
+    ],
+    "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": "/ecs/psicoconecta-teleconsulta", "awslogs-region": "us-east-2", "awslogs-stream-prefix": "ecs"}}
+  }]
+}

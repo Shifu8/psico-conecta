@@ -12,7 +12,7 @@ class ClienteStripe:
         clave = current_app.config.get("STRIPE_SECRET_KEY", "")
         if not clave:
             raise ErrorDominio(
-                "Stripe todavÃƒÂ­a no estÃƒÂ¡ configurado.",
+                "Stripe todavía no está configurado.",
                 503,
                 "stripe_no_configurado",
             )
@@ -34,13 +34,16 @@ class ClienteStripe:
         if hasattr(objeto, "keys"):
             return {clave: objeto[clave] for clave in objeto.keys()}
         raise TypeError(
-            f"No se puede convertir el objeto Stripe de tipo "
-            f"{type(objeto).__name__} a diccionario."
+            f"No se puede convertir el objeto Stripe de tipo {type(objeto).__name__} a diccionario."
         )
 
     @staticmethod
     def _traducir_error(error):
-        mensaje = getattr(error, "user_message", None) or str(error) or "Stripe rechazÃƒÂ³ la operaciÃƒÂ³n."
+        mensaje = (
+            getattr(error, "user_message", None)
+            or str(error)
+            or "Stripe rechazó la operación."
+        )
         codigo = 502
         if isinstance(error, stripe.CardError):
             codigo = 402
@@ -75,7 +78,6 @@ class ClienteStripe:
             sesion = self.cliente.v1.checkout.sessions.expire(session_id)
             return self._dict(sesion)
         except stripe.InvalidRequestError:
-            # Stripe rechaza expirar sesiones ya completadas o vencidas. No es fatal.
             return {}
         except stripe.StripeError as error:
             raise self._traducir_error(error) from None
@@ -100,7 +102,7 @@ class ClienteStripe:
     def construir_evento(payload, firma, secreto):
         if not secreto:
             raise ErrorDominio(
-                "El secreto del webhook de Stripe no estÃƒÂ¡ configurado.",
+                "El secreto del webhook de Stripe no está configurado.",
                 503,
                 "webhook_no_configurado",
             )
@@ -111,7 +113,7 @@ class ClienteStripe:
             return json.loads(payload.decode("utf-8")) if isinstance(payload, bytes) else dict(evento)
         except (ValueError, stripe.SignatureVerificationError):
             raise ErrorDominio(
-                "La firma del webhook de Stripe no es vÃƒÂ¡lida.",
+                "La firma del webhook de Stripe no es válida.",
                 400,
                 "firma_webhook_invalida",
             ) from None

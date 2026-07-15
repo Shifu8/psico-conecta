@@ -1,0 +1,34 @@
+{
+  "family": "psicoconecta-pagos",
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "containerDefinitions": [{
+    "name": "pagos",
+    "image": "ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/pagos:latest",
+    "essential": true,
+    "command": ["sh", "-c", "python preparar_bd.py && exec python ejecutar.py"],
+    "portMappings": [{"name": "pagos", "containerPort": 5004, "protocol": "tcp"}],
+    "environment": [
+      {"name": "PORT", "value": "5004"}, {"name": "DB_SCHEMA", "value": "pagos_schema"},
+      {"name": "USERS_SERVICE_URL", "value": "http://usuarios:5001"},
+      {"name": "CITAS_SERVICE_URL", "value": "http://citas:5002"},
+      {"name": "VALIDAR_USUARIO_REMOTO", "value": "true"},
+      {"name": "FRONTEND_URL", "value": "https://d1wkhs3cq8vcom.cloudfront.net"},
+      {"name": "CORS_ORIGINS", "value": "https://d1wkhs3cq8vcom.cloudfront.net"},
+      {"name": "DEFAULT_CONSULTATION_PRICE_CENTS", "value": "3000"},
+      {"name": "DEFAULT_CURRENCY", "value": "USD"},
+      {"name": "AUTO_REFUND_ON_CANCEL", "value": "true"}
+    ],
+    "secrets": [
+      {"name": "DATABASE_URL", "valueFrom": "psicoconecta/DATABASE_URL"},
+      {"name": "JWT_SECRET_KEY", "valueFrom": "psicoconecta/JWT_SECRET_KEY"},
+      {"name": "PAGOS_INTERNAL_TOKEN", "valueFrom": "psicoconecta/PAGOS_INTERNAL_TOKEN"},
+      {"name": "STRIPE_SECRET_KEY", "valueFrom": "psicoconecta/STRIPE_SECRET_KEY"},
+      {"name": "STRIPE_WEBHOOK_SECRET", "valueFrom": "psicoconecta/STRIPE_WEBHOOK_SECRET"}
+    ],
+    "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": "/ecs/psicoconecta-pagos", "awslogs-region": "us-east-2", "awslogs-stream-prefix": "ecs"}}
+  }]
+}

@@ -1,10 +1,18 @@
-name: Deploy to AWS ECS
+name: Deploy to existing AWS ECS
+
 on:
   push:
-    branches: [main, release]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: psicoconecta-production
+  cancel-in-progress: false
+
 env:
   AWS_REGION: us-east-2
   ECS_CLUSTER: psicoconecta
+  SERVICE_CONNECT_NAMESPACE: psicoconecta.local
   FRONTEND_S3_BUCKET: psicoconecta-frontend-060899556466
   CLOUDFRONT_URL: https://d1wkhs3cq8vcom.cloudfront.net
 
@@ -25,37 +33,13 @@ jobs:
             exit 0
           fi
           echo "can_deploy=true" >> "$GITHUB_OUTPUT"
-  deploy:
+
+  deploy-backend:
     runs-on: ubuntu-latest
     needs: check-deploy-config
     if: ${{ needs.check-deploy-config.outputs.can_deploy == 'true' }}
-    strategy:
-      matrix:
-        service:
-          - name: puerta-enlace
-            path: backend/puerta-enlace-api
-            port: 5000
-            task-def: infraestructura/aws/task-definition-puerta-enlace.json
-          - name: usuarios
-            path: backend/servicios/servicio-usuarios
-            port: 5001
-            task-def: infraestructura/aws/task-definition-usuarios.json
-          - name: citas
-            path: backend/servicios/servicio-citas
-            port: 5002
-            task-def: ""
-          - name: teleconsulta
-            path: backend/servicios/servicio-teleconsulta
-            port: 5003
-            task-def: ""
-          - name: pagos
-            path: backend/servicios/servicio-pagos
-            port: 5004
-            task-def: ""
-          - name: iot
-            path: backend/servicios/servicio-inteligencia-iot
-            port: 5005
-            task-def: infraestructura/aws/task-definition-iot.json
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -65,62 +49,420 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve existing AWS account and cluster
+        id: aws-context
+        run: |
+          set -euo pipefail
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          aws ecs describe-clusters --clusters "$ECS_CLUSTER" --region "$AWS_REGION" \
+            --query 'clusters[0].clusterArn' --output text | grep -v '^None$'
+          echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Synchronize application secrets in AWS Secrets Manager
+        env:
+          DATABASE_URL_VALUE: ${{ secrets.DATABASE_URL }}
+          SECRET_KEY_VALUE: ${{ secrets.SECRET_KEY }}
+          JWT_SECRET_KEY_VALUE: ${{ secrets.JWT_SECRET_KEY }}
+          TELECONSULTA_INTERNAL_TOKEN_VALUE: ${{ secrets.TELECONSULTA_INTERNAL_TOKEN }}
+          PAGOS_INTERNAL_TOKEN_VALUE: ${{ secrets.PAGOS_INTERNAL_TOKEN }}
+          ZOOM_ACCOUNT_ID_VALUE: ${{ secrets.ZOOM_ACCOUNT_ID }}
+          ZOOM_CLIENT_ID_VALUE: ${{ secrets.ZOOM_CLIENT_ID }}
+          ZOOM_CLIENT_SECRET_VALUE: ${{ secrets.ZOOM_CLIENT_SECRET }}
+          ZOOM_HOST_USER_ID_VALUE: ${{ secrets.ZOOM_HOST_USER_ID }}
+          ZOOM_WEBHOOK_SECRET_TOKEN_VALUE: ${{ secrets.ZOOM_WEBHOOK_SECRET_TOKEN }}
+          STRIPE_SECRET_KEY_VALUE: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET_VALUE: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          GOOGLE_CLIENT_ID_VALUE: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET_VALUE: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN_VALUE: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GOOGLE_SENDER_EMAIL_VALUE: ${{ secrets.GOOGLE_SENDER_EMAIL }}
+          TURNSTILE_SECRET_KEY_VALUE: ${{ secrets.TURNSTILE_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          faltantes=()
+
+          sincronizar_secreto() {
+            local nombre="$1"
+            local valor="$2"
+            local requerido="$3"
+            local secret_id="psicoconecta/$nombre"
+
+            if [ -n "$valor" ]; then
+              if aws secretsmanager describe-secret --secret-id "$secret_id" --region "$AWS_REGION" >/dev/null 2>&1; then
+                aws secretsmanager put-secret-value \
+                  --secret-id "$secret_id" \
+                  --secret-string "$valor" \
+                  --region "$AWS_REGION" >/dev/null
+              else
+                aws secretsmanager create-secret \
+                  --name "$secret_id" \
+                  --secret-string "$valor" \
+                  --region "$AWS_REGION" >/dev/null
+              fi
+              echo "Secret $secret_id actualizado."
+              return
+            fi
+
+            if aws secretsmanager describe-secret --secret-id "$secret_id" --region "$AWS_REGION" >/dev/null 2>&1; then
+              echo "Secret $secret_id conservado desde el despliegue existente."
+            elif [ "$requerido" = "true" ]; then
+              faltantes+=("$nombre")
+            else
+              echo "Secret opcional $secret_id no configurado."
+            fi
+          }
+
+          sincronizar_secreto DATABASE_URL "$DATABASE_URL_VALUE" true
+          sincronizar_secreto SECRET_KEY "$SECRET_KEY_VALUE" true
+          sincronizar_secreto JWT_SECRET_KEY "$JWT_SECRET_KEY_VALUE" true
+          sincronizar_secreto TELECONSULTA_INTERNAL_TOKEN "$TELECONSULTA_INTERNAL_TOKEN_VALUE" true
+          sincronizar_secreto PAGOS_INTERNAL_TOKEN "$PAGOS_INTERNAL_TOKEN_VALUE" true
+          sincronizar_secreto ZOOM_ACCOUNT_ID "$ZOOM_ACCOUNT_ID_VALUE" true
+          sincronizar_secreto ZOOM_CLIENT_ID "$ZOOM_CLIENT_ID_VALUE" true
+          sincronizar_secreto ZOOM_CLIENT_SECRET "$ZOOM_CLIENT_SECRET_VALUE" true
+          sincronizar_secreto ZOOM_HOST_USER_ID "$ZOOM_HOST_USER_ID_VALUE" true
+          sincronizar_secreto ZOOM_WEBHOOK_SECRET_TOKEN "$ZOOM_WEBHOOK_SECRET_TOKEN_VALUE" true
+          sincronizar_secreto STRIPE_SECRET_KEY "$STRIPE_SECRET_KEY_VALUE" true
+          sincronizar_secreto STRIPE_WEBHOOK_SECRET "$STRIPE_WEBHOOK_SECRET_VALUE" true
+
+          sincronizar_secreto GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID_VALUE" false
+          sincronizar_secreto GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET_VALUE" false
+          sincronizar_secreto GOOGLE_REFRESH_TOKEN "$GOOGLE_REFRESH_TOKEN_VALUE" false
+          sincronizar_secreto GOOGLE_SENDER_EMAIL "$GOOGLE_SENDER_EMAIL_VALUE" false
+          sincronizar_secreto TURNSTILE_SECRET_KEY "$TURNSTILE_SECRET_KEY_VALUE" false
+
+          if [ ${#faltantes[@]} -gt 0 ]; then
+            printf 'Faltan secretos obligatorios en GitHub o AWS Secrets Manager: %s\n' "${faltantes[*]}"
+            exit 1
+          fi
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push image
-        id: build-image
+      - name: Build, validate and push backend images
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: psicoconecta/${{ matrix.service.name }}
-          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f ${{ matrix.service.path }}/Dockerfile .
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          servicios=(
+            "usuarios|backend/servicios/servicio-usuarios"
+            "citas|backend/servicios/servicio-citas"
+            "teleconsulta|backend/servicios/servicio-teleconsulta"
+            "pagos|backend/servicios/servicio-pagos"
+            "iot|backend/servicios/servicio-inteligencia-iot"
+            "puerta-enlace|backend/puerta-enlace-api"
+          )
 
-      - name: Sync Turnstile secret for usuarios
-        if: ${{ matrix.service.name == 'usuarios' }}
-        env:
-          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          for entrada in "${servicios[@]}"; do
+            IFS='|' read -r servicio ruta <<< "$entrada"
+            repositorio="psicoconecta/$servicio"
+            imagen="$ECR_REGISTRY/$repositorio:${GITHUB_SHA}"
+
+            if ! aws ecr describe-repositories --repository-names "$repositorio" --region "$AWS_REGION" >/dev/null 2>&1; then
+              aws ecr create-repository \
+                --repository-name "$repositorio" \
+                --image-scanning-configuration scanOnPush=true \
+                --region "$AWS_REGION" >/dev/null
+            fi
+
+            docker build -t "$imagen" -f "$ruta/Dockerfile" .
+            docker tag "$imagen" "$ECR_REGISTRY/$repositorio:latest"
+
+            if [ "$servicio" = "pagos" ]; then
+              docker run --rm --entrypoint pytest "$imagen" -q -p no:cacheprovider
+            fi
+
+            docker push "$imagen"
+            docker push "$ECR_REGISTRY/$repositorio:latest"
+          done
+
+      - name: Ensure log groups and Service Connect namespace
+        id: service-connect
         run: |
-          if [ -z "$TURNSTILE_SECRET_KEY" ]; then
-            echo "TURNSTILE_SECRET_KEY is not configured; skipping Turnstile secret sync."
+          set -euo pipefail
+          for servicio in usuarios citas teleconsulta pagos iot puerta-enlace; do
+            aws logs create-log-group \
+              --log-group-name "/ecs/psicoconecta-$servicio" \
+              --region "$AWS_REGION" 2>/dev/null || true
+          done
+
+          NAMESPACE_ARN=$(aws servicediscovery list-namespaces \
+            --query "Namespaces[?Name=='$SERVICE_CONNECT_NAMESPACE'].Arn | [0]" \
+            --output text --region "$AWS_REGION")
+
+          if [ -z "$NAMESPACE_ARN" ] || [ "$NAMESPACE_ARN" = "None" ]; then
+            OPERATION_ID=$(aws servicediscovery create-http-namespace \
+              --name "$SERVICE_CONNECT_NAMESPACE" \
+              --description "Descubrimiento interno de los servicios PsicoConecta" \
+              --region "$AWS_REGION" \
+              --query OperationId --output text)
+            for _ in $(seq 1 30); do
+              ESTADO=$(aws servicediscovery get-operation \
+                --operation-id "$OPERATION_ID" \
+                --region "$AWS_REGION" \
+                --query Operation.Status --output text)
+              [ "$ESTADO" = "SUCCESS" ] && break
+              if [ "$ESTADO" = "FAIL" ]; then
+                aws servicediscovery get-operation --operation-id "$OPERATION_ID" --region "$AWS_REGION"
+                exit 1
+              fi
+              sleep 5
+            done
+            NAMESPACE_ARN=$(aws servicediscovery list-namespaces \
+              --query "Namespaces[?Name=='$SERVICE_CONNECT_NAMESPACE'].Arn | [0]" \
+              --output text --region "$AWS_REGION")
+          fi
+
+          if [ -z "$NAMESPACE_ARN" ] || [ "$NAMESPACE_ARN" = "None" ]; then
+            echo "No fue posible resolver el namespace de Service Connect."
+            exit 1
+          fi
+          echo "namespace_arn=$NAMESPACE_ARN" >> "$GITHUB_OUTPUT"
+
+      - name: Register task definitions and update the existing ECS deployment
+        env:
+          AWS_ACCOUNT_ID: ${{ steps.aws-context.outputs.account_id }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          NAMESPACE_ARN: ${{ steps.service-connect.outputs.namespace_arn }}
+        run: |
+          set -euo pipefail
+
+          GATEWAY_NETWORK=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services puerta-enlace \
+            --region "$AWS_REGION" \
+            --query 'services[0].networkConfiguration' \
+            --output json)
+          if [ -z "$GATEWAY_NETWORK" ] || [ "$GATEWAY_NETWORK" = "null" ]; then
+            echo "No existe el servicio puerta-enlace en el clúster existente o no tiene red awsvpc."
+            exit 1
+          fi
+
+          renderizar_task_definition() {
+            local servicio="$1"
+            local archivo="$2"
+            local imagen="$ECR_REGISTRY/psicoconecta/$servicio:${GITHUB_SHA}"
+            local salida="/tmp/task-definition-$servicio.json"
+
+            python - "$archivo" "$salida" "$imagen" "$AWS_ACCOUNT_ID" "$AWS_REGION" "$servicio" <<'PY'
+          import json
+          import subprocess
+          import sys
+
+          origen, destino, imagen, cuenta, region, servicio = sys.argv[1:]
+          with open(origen, encoding="utf-8") as archivo:
+              datos = json.load(archivo)
+
+          def reemplazar(valor):
+              if isinstance(valor, str):
+                  return valor.replace("ACCOUNT_ID", cuenta)
+              if isinstance(valor, list):
+                  return [reemplazar(item) for item in valor]
+              if isinstance(valor, dict):
+                  return {clave: reemplazar(item) for clave, item in valor.items()}
+              return valor
+
+          datos = reemplazar(datos)
+          datos["containerDefinitions"][0]["image"] = imagen
+          secretos = datos["containerDefinitions"][0].setdefault("secrets", [])
+
+          if servicio == "usuarios":
+              opcionales = [
+                  "GOOGLE_CLIENT_ID",
+                  "GOOGLE_CLIENT_SECRET",
+                  "GOOGLE_REFRESH_TOKEN",
+                  "GOOGLE_SENDER_EMAIL",
+                  "TURNSTILE_SECRET_KEY",
+              ]
+              existentes = {item["name"] for item in secretos}
+              for nombre in opcionales:
+                  secret_id = f"psicoconecta/{nombre}"
+                  proceso = subprocess.run(
+                      [
+                          "aws", "secretsmanager", "describe-secret",
+                          "--secret-id", secret_id,
+                          "--region", region,
+                          "--query", "ARN",
+                          "--output", "text",
+                      ],
+                      capture_output=True,
+                      text=True,
+                  )
+                  if proceso.returncode == 0 and nombre not in existentes:
+                      secretos.append({
+                          "name": nombre,
+                          "valueFrom": f"arn:aws:secretsmanager:{region}:{cuenta}:secret:{secret_id}",
+                      })
+
+          for secreto in secretos:
+              valor = secreto["valueFrom"]
+              if ":secret:" not in valor:
+                  continue
+              secret_id = valor.split(":secret:", 1)[1]
+              arn = subprocess.check_output(
+                  [
+                      "aws", "secretsmanager", "describe-secret",
+                      "--secret-id", secret_id,
+                      "--region", region,
+                      "--query", "ARN",
+                      "--output", "text",
+                  ],
+                  text=True,
+              ).strip()
+              secreto["valueFrom"] = arn
+
+          with open(destino, "w", encoding="utf-8") as archivo:
+              json.dump(datos, archivo, ensure_ascii=False, indent=2)
+          PY
+
+            aws ecs register-task-definition \
+              --cli-input-json "file://$salida" \
+              --region "$AWS_REGION" \
+              --query taskDefinition.taskDefinitionArn \
+              --output text
+          }
+
+          configurar_service_connect() {
+            local servicio="$1"
+            local puerto="$2"
+            if [ "$servicio" = "puerta-enlace" ]; then
+              jq -cn --arg namespace "$NAMESPACE_ARN" \
+                '{enabled:true, namespace:$namespace}'
+            else
+              jq -cn \
+                --arg namespace "$NAMESPACE_ARN" \
+                --arg portName "$servicio" \
+                --arg discoveryName "$servicio" \
+                --arg dnsName "$servicio" \
+                --argjson port "$puerto" \
+                '{enabled:true, namespace:$namespace, services:[{portName:$portName, discoveryName:$discoveryName, clientAliases:[{port:$port, dnsName:$dnsName}]}]}'
+            fi
+          }
+
+          desplegar_servicio() {
+            local servicio="$1"
+            local puerto="$2"
+            local task_file="$3"
+            local task_arn
+            local sc_config
+            local estado
+
+            task_arn=$(renderizar_task_definition "$servicio" "$task_file")
+            sc_config=$(configurar_service_connect "$servicio" "$puerto")
+            estado=$(aws ecs describe-services \
+              --cluster "$ECS_CLUSTER" \
+              --services "$servicio" \
+              --region "$AWS_REGION" \
+              --query 'services[0].status' --output text)
+
+            if [ "$estado" = "ACTIVE" ]; then
+              aws ecs update-service \
+                --cluster "$ECS_CLUSTER" \
+                --service "$servicio" \
+                --task-definition "$task_arn" \
+                --desired-count 1 \
+                --service-connect-configuration "$sc_config" \
+                --force-new-deployment \
+                --region "$AWS_REGION" >/dev/null
+            else
+              if [ "$servicio" = "puerta-enlace" ]; then
+                echo "El servicio público puerta-enlace debe existir en el despliegue actual."
+                exit 1
+              fi
+              aws ecs create-service \
+                --cluster "$ECS_CLUSTER" \
+                --service-name "$servicio" \
+                --task-definition "$task_arn" \
+                --desired-count 1 \
+                --launch-type FARGATE \
+                --network-configuration "$GATEWAY_NETWORK" \
+                --service-connect-configuration "$sc_config" \
+                --region "$AWS_REGION" >/dev/null
+            fi
+          }
+
+          desplegar_servicio usuarios 5001 infraestructura/aws/task-definition-usuarios.json
+          desplegar_servicio citas 5002 infraestructura/aws/task-definition-citas.json
+          desplegar_servicio teleconsulta 5003 infraestructura/aws/task-definition-teleconsulta.json
+          desplegar_servicio pagos 5004 infraestructura/aws/task-definition-pagos.json
+          desplegar_servicio iot 5005 infraestructura/aws/task-definition-iot.json
+          desplegar_servicio puerta-enlace 5000 infraestructura/aws/task-definition-puerta-enlace.json
+
+          # Permite comunicación privada entre los grupos de seguridad de los servicios.
+          SECURITY_GROUPS=()
+          for servicio in puerta-enlace usuarios citas teleconsulta pagos iot; do
+            while read -r grupo; do
+              [ -n "$grupo" ] && [ "$grupo" != "None" ] && SECURITY_GROUPS+=("$grupo")
+            done < <(aws ecs describe-services \
+              --cluster "$ECS_CLUSTER" --services "$servicio" --region "$AWS_REGION" \
+              --query 'services[0].networkConfiguration.awsvpcConfiguration.securityGroups[]' \
+              --output text | tr '\t' '\n')
+          done
+          mapfile -t SECURITY_GROUPS < <(printf '%s\n' "${SECURITY_GROUPS[@]}" | sort -u)
+          for destino in "${SECURITY_GROUPS[@]}"; do
+            for origen in "${SECURITY_GROUPS[@]}"; do
+              aws ec2 authorize-security-group-ingress \
+                --group-id "$destino" \
+                --protocol tcp \
+                --port 5000-5005 \
+                --source-group "$origen" \
+                --region "$AWS_REGION" >/dev/null 2>&1 || true
+            done
+          done
+
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services usuarios citas teleconsulta pagos iot puerta-enlace \
+            --region "$AWS_REGION"
+
+      - name: Route the existing ALB API paths to the gateway
+        run: |
+          set -euo pipefail
+          TARGET_GROUP=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" --services puerta-enlace --region "$AWS_REGION" \
+            --query 'services[0].loadBalancers[0].targetGroupArn' --output text)
+          if [ -z "$TARGET_GROUP" ] || [ "$TARGET_GROUP" = "None" ]; then
+            echo "El servicio puerta-enlace no tiene Target Group; se conserva la configuración actual."
             exit 0
           fi
-          if aws secretsmanager describe-secret --secret-id psicoconecta/TURNSTILE_SECRET_KEY --region $AWS_REGION >/dev/null 2>&1; then
-            aws secretsmanager put-secret-value \
-              --secret-id psicoconecta/TURNSTILE_SECRET_KEY \
-              --secret-string "$TURNSTILE_SECRET_KEY" \
-              --region $AWS_REGION >/dev/null
-          else
-            aws secretsmanager create-secret \
-              --name psicoconecta/TURNSTILE_SECRET_KEY \
-              --secret-string "$TURNSTILE_SECRET_KEY" \
-              --region $AWS_REGION >/dev/null
-          fi
 
-      - name: Update ECS service (if task definition exists)
-        if: ${{ matrix.service.task-def != '' }}
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID || '060899556466' }}
-          TASK_DEF_FILE: ${{ matrix.service.task-def }}
-        run: |
-          sed "s/ACCOUNT_ID/$AWS_ACCOUNT_ID/g" "$TASK_DEF_FILE" > /tmp/task-definition.json
-          TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file:///tmp/task-definition.json --region $AWS_REGION --query "taskDefinition.taskDefinitionArn" --output text)
-          echo "Task definition: $TASK_DEF_ARN"
-          aws ecs update-service --cluster $ECS_CLUSTER --service ${{ matrix.service.name }} --task-definition $TASK_DEF_ARN --force-new-deployment --region $AWS_REGION
+          LOAD_BALANCER=$(aws elbv2 describe-target-groups \
+            --target-group-arns "$TARGET_GROUP" --region "$AWS_REGION" \
+            --query 'TargetGroups[0].LoadBalancerArns[0]' --output text)
+          LISTENER=$(aws elbv2 describe-listeners \
+            --load-balancer-arn "$LOAD_BALANCER" --region "$AWS_REGION" \
+            --query 'sort_by(Listeners,&Port)[-1].ListenerArn' --output text)
+          aws elbv2 describe-rules --listener-arn "$LISTENER" --region "$AWS_REGION" > /tmp/alb-rules.json
+          RULE_ARN=$(jq -r '.Rules[] | select(any(.Conditions[]?; .Field == "path-pattern" and ((.Values // []) | index("/api/*")))) | .RuleArn' /tmp/alb-rules.json | head -n1)
+
+          if [ -n "$RULE_ARN" ]; then
+            aws elbv2 modify-rule \
+              --rule-arn "$RULE_ARN" \
+              --actions "Type=forward,TargetGroupArn=$TARGET_GROUP" \
+              --region "$AWS_REGION" >/dev/null
+          else
+            PRIORITY=10
+            while jq -e --arg prioridad "$PRIORITY" '.Rules[] | select(.Priority == $prioridad)' /tmp/alb-rules.json >/dev/null; do
+              PRIORITY=$((PRIORITY + 1))
+            done
+            aws elbv2 create-rule \
+              --listener-arn "$LISTENER" \
+              --priority "$PRIORITY" \
+              --conditions 'Field=path-pattern,Values=/api/*' \
+              --actions "Type=forward,TargetGroupArn=$TARGET_GROUP" \
+              --region "$AWS_REGION" >/dev/null
+          fi
 
   deploy-frontend:
     runs-on: ubuntu-latest
     needs:
       - check-deploy-config
-      - deploy
+      - deploy-backend
     if: ${{ needs.check-deploy-config.outputs.can_deploy == 'true' }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -131,31 +473,42 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build frontend
+      - name: Build frontend for the existing CloudFront URL
         env:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
         run: |
-          export VITE_API_URL="$CLOUDFRONT_URL"
-          export VITE_GOOGLE_CLIENT_ID="${VITE_GOOGLE_CLIENT_ID:-339658076678-kah0e205d5asf6ufnlh009lh5i4g8u70.apps.googleusercontent.com}"
+          set -euo pipefail
           cd frontend
-          echo "VITE_API_URL=$VITE_API_URL" > .env
-          echo "VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID" >> .env
-          if [ -n "$VITE_TURNSTILE_SITE_KEY" ]; then
-            echo "VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY" >> .env
-          fi
-          npm install
+          cat > .env.production <<EOF
+          VITE_API_URL=$CLOUDFRONT_URL
+          VITE_GATEWAY_API_URL=$CLOUDFRONT_URL
+          VITE_USERS_API_URL=$CLOUDFRONT_URL
+          VITE_CITAS_API_URL=$CLOUDFRONT_URL
+          VITE_TELECONSULTA_API_URL=$CLOUDFRONT_URL
+          VITE_PAGOS_API_URL=$CLOUDFRONT_URL
+          VITE_IOT_API_URL=$CLOUDFRONT_URL
+          VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID:-339658076678-kah0e205d5asf6ufnlh009lh5i4g8u70.apps.googleusercontent.com}
+          VITE_TURNSTILE_SITE_KEY=${VITE_TURNSTILE_SITE_KEY:-}
+          VITE_POSTHOG_KEY=${VITE_POSTHOG_KEY:-}
+          VITE_POSTHOG_HOST=https://us.i.posthog.com
+          EOF
+          npm ci
           npm run build
-          echo "Frontend built with VITE_API_URL=$VITE_API_URL"
 
-      - name: Deploy to S3
+      - name: Deploy frontend to the existing S3 bucket
         run: |
-          aws s3 sync frontend/dist/ s3://$FRONTEND_S3_BUCKET --delete
-          aws s3 website s3://$FRONTEND_S3_BUCKET --index-document index.html --error-document index.html
+          aws s3 sync frontend/dist/ "s3://$FRONTEND_S3_BUCKET" --delete --region "$AWS_REGION"
 
-      - name: Invalidate CloudFront
+      - name: Invalidate the existing CloudFront distribution
         run: |
-          CF_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Origins.Items[?DomainName.contains(@, 'psicoconecta-frontend')]].Id" --output text 2>/dev/null || true)
-          if [ -n "$CF_ID" ]; then
-            aws cloudfront create-invalidation --distribution-id $CF_ID --paths "/*" || true
+          DOMAIN=${CLOUDFRONT_URL#https://}
+          DISTRIBUTION_ID=$(aws cloudfront list-distributions \
+            --query "DistributionList.Items[?DomainName=='$DOMAIN'].Id | [0]" \
+            --output text)
+          if [ -n "$DISTRIBUTION_ID" ] && [ "$DISTRIBUTION_ID" != "None" ]; then
+            aws cloudfront create-invalidation \
+              --distribution-id "$DISTRIBUTION_ID" \
+              --paths '/*' >/dev/null
           fi

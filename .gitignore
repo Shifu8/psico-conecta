@@ -25,16 +25,10 @@ credentials.json
 client_secret*.json
 token.json
 *.pem
+*.bak
 
-
-.env
 .env.local
 .env.*.local
-
-node_modules/
-dist/
-__pycache__/
-.pytest_cache/
 
 respaldo-*.sql
 respaldo-servicio-*/
