@@ -10,7 +10,7 @@
       "name": "pagos",
       "image": "060899556466.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/pagos:latest",
       "essential": true,
-      "portMappings": [{"containerPort": 5004, "protocol": "tcp"}],
+      "portMappings": [{"name": "pagos", "containerPort": 5004, "protocol": "tcp"}],
       "environment": [
         {"name": "PORT", "value": "5004"},
         {"name": "FLASK_ENV", "value": "production"},

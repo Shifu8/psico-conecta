@@ -10,7 +10,7 @@
       "name": "teleconsulta",
       "image": "060899556466.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/teleconsulta:latest",
       "essential": true,
-      "portMappings": [{"containerPort": 5003, "protocol": "tcp"}],
+      "portMappings": [{"name": "teleconsulta", "containerPort": 5003, "protocol": "tcp"}],
       "environment": [
         {"name": "PORT", "value": "5003"},
         {"name": "FLASK_ENV", "value": "production"},

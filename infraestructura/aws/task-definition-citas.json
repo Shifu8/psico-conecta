@@ -10,7 +10,7 @@
       "name": "citas",
       "image": "060899556466.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/citas:latest",
       "essential": true,
-      "portMappings": [{"containerPort": 5002, "protocol": "tcp"}],
+      "portMappings": [{"name": "citas", "containerPort": 5002, "protocol": "tcp"}],
       "environment": [
         {"name": "PORT", "value": "5002"},
         {"name": "FLASK_ENV", "value": "production"},

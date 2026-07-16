@@ -11,7 +11,7 @@
       "image": "060899556466.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/usuarios:latest",
       "essential": true,
       "command": ["sh", "-c", "python app/datos_iniciales.py && exec python app/ejecutar.py"],
-      "portMappings": [{"containerPort": 5001, "protocol": "tcp"}],
+      "portMappings": [{"name": "usuarios", "containerPort": 5001, "protocol": "tcp"}],
       "environment": [
         {"name": "PORT", "value": "5001"},
         {"name": "FLASK_ENV", "value": "production"},
