@@ -1,37 +1,49 @@
 {
   "family": "psicoconecta-teleconsulta",
   "networkMode": "awsvpc",
-  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::060899556466:role/ecsTaskExecutionRole",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
-  "containerDefinitions": [{
-    "name": "teleconsulta",
-    "image": "ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/teleconsulta:latest",
-    "essential": true,
-    "command": ["sh", "-c", "python preparar_bd.py && exec python ejecutar.py"],
-    "portMappings": [{"name": "teleconsulta", "containerPort": 5003, "protocol": "tcp"}],
-    "environment": [
-      {"name": "PORT", "value": "5003"}, {"name": "DB_SCHEMA", "value": "teleconsulta_schema"},
-      {"name": "USERS_SERVICE_URL", "value": "http://usuarios:5001"},
-      {"name": "CITAS_SERVICE_URL", "value": "http://citas:5002"},
-      {"name": "PAGOS_SERVICE_URL", "value": "http://pagos:5004"},
-      {"name": "VALIDAR_USUARIO_REMOTO", "value": "true"},
-      {"name": "REQUIRE_PAYMENT_FOR_TELECONSULTA", "value": "true"},
-      {"name": "TIMEZONE", "value": "America/Guayaquil"},
-      {"name": "CORS_ORIGINS", "value": "https://d1wkhs3cq8vcom.cloudfront.net"}
-    ],
-    "secrets": [
-      {"name": "DATABASE_URL", "valueFrom": "psicoconecta/DATABASE_URL"},
-      {"name": "JWT_SECRET_KEY", "valueFrom": "psicoconecta/JWT_SECRET_KEY"},
-      {"name": "TELECONSULTA_INTERNAL_TOKEN", "valueFrom": "psicoconecta/TELECONSULTA_INTERNAL_TOKEN"},
-      {"name": "PAGOS_INTERNAL_TOKEN", "valueFrom": "psicoconecta/PAGOS_INTERNAL_TOKEN"},
-      {"name": "ZOOM_ACCOUNT_ID", "valueFrom": "psicoconecta/ZOOM_ACCOUNT_ID"},
-      {"name": "ZOOM_CLIENT_ID", "valueFrom": "psicoconecta/ZOOM_CLIENT_ID"},
-      {"name": "ZOOM_CLIENT_SECRET", "valueFrom": "psicoconecta/ZOOM_CLIENT_SECRET"},
-      {"name": "ZOOM_HOST_USER_ID", "valueFrom": "psicoconecta/ZOOM_HOST_USER_ID"},
-      {"name": "ZOOM_WEBHOOK_SECRET_TOKEN", "valueFrom": "psicoconecta/ZOOM_WEBHOOK_SECRET_TOKEN"}
-    ],
-    "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": "/ecs/psicoconecta-teleconsulta", "awslogs-region": "us-east-2", "awslogs-stream-prefix": "ecs"}}
-  }]
+  "containerDefinitions": [
+    {
+      "name": "teleconsulta",
+      "image": "060899556466.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/teleconsulta:latest",
+      "essential": true,
+      "portMappings": [{"containerPort": 5003, "protocol": "tcp"}],
+      "environment": [
+        {"name": "PORT", "value": "5003"},
+        {"name": "FLASK_ENV", "value": "production"},
+        {"name": "DB_SCHEMA", "value": "teleconsulta_schema"},
+        {"name": "DATABASE_SCHEMA", "value": "teleconsulta_schema"},
+        {"name": "TIMEZONE", "value": "America/Guayaquil"},
+        {"name": "CORS_ORIGINS", "value": "https://psico-conecta.brandon-medina.workers.dev,https://d1wkhs3cq8vcom.cloudfront.net,http://psicoconecta-frontend-060899556466.s3-website.us-east-2.amazonaws.com"},
+        {"name": "USERS_SERVICE_URL", "value": "http://psicoconecta-alb-1327950085.us-east-2.elb.amazonaws.com"},
+        {"name": "CITAS_SERVICE_URL", "value": "http://psicoconecta-alb-1327950085.us-east-2.elb.amazonaws.com"},
+        {"name": "PAGOS_SERVICE_URL", "value": "http://psicoconecta-alb-1327950085.us-east-2.elb.amazonaws.com"},
+        {"name": "VALIDAR_USUARIO_REMOTO", "value": "false"},
+        {"name": "REQUIRE_PAYMENT_FOR_TELECONSULTA", "value": "false"}
+      ],
+      "secrets": [
+        {"name": "DATABASE_URL", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/DATABASE_URL"},
+        {"name": "SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/SECRET_KEY"},
+        {"name": "JWT_SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/JWT_SECRET_KEY"},
+        {"name": "TELECONSULTA_INTERNAL_TOKEN", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/TELECONSULTA_INTERNAL_TOKEN"},
+        {"name": "PAGOS_INTERNAL_TOKEN", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/PAGOS_INTERNAL_TOKEN"},
+        {"name": "ZOOM_ACCOUNT_ID", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/ZOOM_ACCOUNT_ID"},
+        {"name": "ZOOM_CLIENT_ID", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/ZOOM_CLIENT_ID"},
+        {"name": "ZOOM_CLIENT_SECRET", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/ZOOM_CLIENT_SECRET"},
+        {"name": "ZOOM_HOST_USER_ID", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/ZOOM_HOST_USER_ID"},
+        {"name": "ZOOM_WEBHOOK_SECRET_TOKEN", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/ZOOM_WEBHOOK_SECRET_TOKEN"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/psicoconecta-teleconsulta",
+          "awslogs-region": "us-east-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
 }
