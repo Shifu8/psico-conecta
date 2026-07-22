@@ -40,7 +40,7 @@ export default function PaginaSalaTeleconsulta() {
   const cuentaAtras = useMemo(() => {
     if (!sesion?.disponible_desde) return "";
     const diferencia = new Date(sesion.disponible_desde).getTime() - ahora;
-    if (diferencia <= 0) return "El acceso ya puede habilitarse.";
+    if (diferencia <= 0) return "";
     const minutos = Math.ceil(diferencia / 60000);
     return `El acceso se habilitará en aproximadamente ${minutos} minuto${minutos === 1 ? "" : "s"}.`;
   }, [sesion, ahora]);
@@ -79,7 +79,13 @@ export default function PaginaSalaTeleconsulta() {
         <button onClick={ingresar} disabled={ingresando || !sesion?.puede_ingresar} className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 font-black text-blue-800 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50">
           {ingresando ? <LoaderCircle className="animate-spin" size={19} /> : <ExternalLink size={19} />} {ingresando ? "Preparando acceso..." : "Ingresar a Zoom"}
         </button>
-        {!sesion?.puede_ingresar && <p className="mt-3 text-center text-sm text-blue-100">{cuentaAtras || sesion?.mensaje_acceso}</p>}
+        {!sesion?.puede_ingresar && (
+          <p className="mt-3 text-center text-sm text-blue-100">
+            {sesion?.estado === "ERROR"
+              ? (sesion?.mensaje_acceso || "La reunión de Zoom no pudo prepararse.")
+              : (cuentaAtras || sesion?.mensaje_acceso)}
+          </p>
+        )}
       </article>
 
       {error && <p className="mt-5 rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-700 dark:bg-red-950/30 dark:text-red-200">{error}</p>}
