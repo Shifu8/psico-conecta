@@ -1,14 +1,22 @@
 {
   "family": "psicoconecta-iot",
   "networkMode": "awsvpc",
+<<<<<<< Updated upstream
   "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+=======
+  "executionRoleArn": "arn:aws:iam::108631844312:role/ecsTaskExecutionRole",
+>>>>>>> Stashed changes
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "256",
   "memory": "512",
   "containerDefinitions": [
     {
       "name": "iot",
+<<<<<<< Updated upstream
       "image": "ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/iot:latest",
+=======
+      "image": "108631844312.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/iot:latest",
+>>>>>>> Stashed changes
       "essential": true,
       "portMappings": [{"containerPort": 5005, "protocol": "tcp"}],
       "environment": [
@@ -30,3 +38,10 @@
     }
   ]
 }
+<<<<<<< Updated upstream
+=======
+
+
+
+
+>>>>>>> Stashed changes
