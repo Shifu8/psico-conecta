@@ -366,6 +366,8 @@ jobs:
             fi
           }
 
+          DEPLOYED_SERVICES=()
+
           desplegar_servicio() {
             local servicio="$1"
             local puerto="$2"
@@ -374,28 +376,19 @@ jobs:
             local sc_config
             local estado
 
-            task_arn=$(renderizar_task_definition "$servicio" "$task_file")
-            sc_config=$(configurar_service_connect "$servicio" "$puerto")
             estado=$(aws ecs describe-services \
               --cluster "$ECS_CLUSTER" \
               --services "$servicio" \
               --region "$AWS_REGION" \
-              --query 'services[0].status' --output text)
+              --query 'services[0].status' --output text 2>/dev/null || true)
 
-            if [ "$estado" = "ACTIVE" ]; then
-              aws ecs update-service \
-                --cluster "$ECS_CLUSTER" \
-                --service "$servicio" \
-                --task-definition "$task_arn" \
-                --desired-count 1 \
-                --service-connect-configuration "$sc_config" \
-                --force-new-deployment \
-                --region "$AWS_REGION" >/dev/null
-            else
+            if [ "$estado" != "ACTIVE" ] && [ "$estado" != "DRAINING" ]; then
               if [ "$servicio" = "puerta-enlace" ]; then
-                echo "El servicio público puerta-enlace debe existir en el despliegue actual."
-                exit 1
+                echo "El servicio opcional puerta-enlace no está activo en el clúster; se omite el despliegue."
+                return 0
               fi
+              task_arn=$(renderizar_task_definition "$servicio" "$task_file")
+              sc_config=$(configurar_service_connect "$servicio" "$puerto")
               aws ecs create-service \
                 --cluster "$ECS_CLUSTER" \
                 --service-name "$servicio" \
@@ -405,7 +398,19 @@ jobs:
                 --network-configuration "$BASE_NETWORK" \
                 --service-connect-configuration "$sc_config" \
                 --region "$AWS_REGION" >/dev/null
+            else
+              task_arn=$(renderizar_task_definition "$servicio" "$task_file")
+              sc_config=$(configurar_service_connect "$servicio" "$puerto")
+              aws ecs update-service \
+                --cluster "$ECS_CLUSTER" \
+                --service "$servicio" \
+                --task-definition "$task_arn" \
+                --desired-count 1 \
+                --service-connect-configuration "$sc_config" \
+                --force-new-deployment \
+                --region "$AWS_REGION" >/dev/null
             fi
+            DEPLOYED_SERVICES+=("$servicio")
           }
 
           desplegar_servicio usuarios 5001 infraestructura/aws/task-definition-usuarios.json
@@ -417,13 +422,13 @@ jobs:
 
           # Permite comunicación privada entre los grupos de seguridad de los servicios.
           SECURITY_GROUPS=()
-          for servicio in puerta-enlace usuarios citas teleconsulta pagos iot; do
+          for servicio in "${DEPLOYED_SERVICES[@]}"; do
             while read -r grupo; do
               [ -n "$grupo" ] && [ "$grupo" != "None" ] && SECURITY_GROUPS+=("$grupo")
             done < <(aws ecs describe-services \
               --cluster "$ECS_CLUSTER" --services "$servicio" --region "$AWS_REGION" \
               --query 'services[0].networkConfiguration.awsvpcConfiguration.securityGroups[]' \
-              --output text | tr '\t' '\n')
+              --output text 2>/dev/null || true | tr '\t' '\n')
           done
           mapfile -t SECURITY_GROUPS < <(printf '%s\n' "${SECURITY_GROUPS[@]}" | sort -u)
           for destino in "${SECURITY_GROUPS[@]}"; do
@@ -439,7 +444,7 @@ jobs:
 
           aws ecs wait services-stable \
             --cluster "$ECS_CLUSTER" \
-            --services usuarios citas teleconsulta pagos iot puerta-enlace \
+            --services "${DEPLOYED_SERVICES[@]}" \
             --region "$AWS_REGION"
 
       - name: Route the existing ALB API paths to the gateway
@@ -447,9 +452,9 @@ jobs:
           set -euo pipefail
           TARGET_GROUP=$(aws ecs describe-services \
             --cluster "$ECS_CLUSTER" --services puerta-enlace --region "$AWS_REGION" \
-            --query 'services[0].loadBalancers[0].targetGroupArn' --output text)
-          if [ -z "$TARGET_GROUP" ] || [ "$TARGET_GROUP" = "None" ]; then
-            echo "El servicio puerta-enlace no tiene Target Group; se conserva la configuración actual."
+            --query 'services[0].loadBalancers[0].targetGroupArn' --output text 2>/dev/null || true)
+          if [ -z "$TARGET_GROUP" ] || [ "$TARGET_GROUP" = "None" ] || [ "$TARGET_GROUP" = "null" ]; then
+            echo "El servicio puerta-enlace no existe o no tiene Target Group; se conserva la configuración actual."
             exit 0
           fi
 
