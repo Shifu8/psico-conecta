@@ -402,7 +402,7 @@ jobs:
                 --task-definition "$task_arn" \
                 --desired-count 1 \
                 --launch-type FARGATE \
-                --network-configuration "$GATEWAY_NETWORK" \
+                --network-configuration "$BASE_NETWORK" \
                 --service-connect-configuration "$sc_config" \
                 --region "$AWS_REGION" >/dev/null
             fi
