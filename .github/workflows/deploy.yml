@@ -229,16 +229,40 @@ jobs:
         run: |
           set -euo pipefail
 
-          GATEWAY_NETWORK=$(aws ecs describe-services \
-            --cluster "$ECS_CLUSTER" \
-            --services puerta-enlace \
-            --region "$AWS_REGION" \
-            --query 'services[0].networkConfiguration' \
-            --output json)
-          if [ -z "$GATEWAY_NETWORK" ] || [ "$GATEWAY_NETWORK" = "null" ]; then
-            echo "No existe el servicio puerta-enlace en el clúster existente o no tiene red awsvpc."
+          # Obtener la red desde cualquier servicio ECS existente.
+          BASE_SERVICE=""
+          BASE_NETWORK=""
+
+          for candidato in usuarios citas teleconsulta pagos iot; do
+            estado=$(aws ecs describe-services \
+              --cluster "$ECS_CLUSTER" \
+              --services "$candidato" \
+              --region "$AWS_REGION" \
+              --query 'services[0].status' \
+              --output text 2>/dev/null || true)
+
+            network=$(aws ecs describe-services \
+              --cluster "$ECS_CLUSTER" \
+              --services "$candidato" \
+              --region "$AWS_REGION" \
+              --query 'services[0].networkConfiguration' \
+              --output json 2>/dev/null || true)
+
+            if [ "$estado" = "ACTIVE" ] && \
+               [ -n "$network" ] && \
+               [ "$network" != "null" ]; then
+              BASE_SERVICE="$candidato"
+              BASE_NETWORK="$network"
+              break
+            fi
+          done
+
+          if [ -z "$BASE_SERVICE" ]; then
+            echo "No se encontró ningún servicio ECS activo con red awsvpc."
             exit 1
           fi
+
+          echo "Red reutilizada desde el servicio: $BASE_SERVICE"
 
           renderizar_task_definition() {
             local servicio="$1"
