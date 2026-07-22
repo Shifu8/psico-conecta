@@ -442,10 +442,31 @@ jobs:
             done
           done
 
-          aws ecs wait services-stable \
-            --cluster "$ECS_CLUSTER" \
-            --services "${DEPLOYED_SERVICES[@]}" \
-            --region "$AWS_REGION"
+          echo "Esperando a que las nuevas tareas de los servicios estén activas..."
+          for servicio in "${DEPLOYED_SERVICES[@]}"; do
+            for i in $(seq 1 30); do
+              primary_running=$(aws ecs describe-services \
+                --cluster "$ECS_CLUSTER" \
+                --services "$servicio" \
+                --region "$AWS_REGION" \
+                --query 'services[0].deployments[?status==`PRIMARY`].runningCount | [0]' \
+                --output text 2>/dev/null || echo "0")
+              desired=$(aws ecs describe-services \
+                --cluster "$ECS_CLUSTER" \
+                --services "$servicio" \
+                --region "$AWS_REGION" \
+                --query 'services[0].desiredCount' \
+                --output text 2>/dev/null || echo "1")
+              if [ "$primary_running" = "$desired" ] && [ "$primary_running" != "None" ] && [ -n "$primary_running" ]; then
+                echo "Servicio $servicio está listo con $primary_running tareas activas."
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "Advertencia: El servicio $servicio no se estabilizó a tiempo (deseado: $desired, activo: $primary_running), pero se continúa."
+              fi
+              sleep 10
+            done
+          done
 
       - name: Route the existing ALB API paths to the gateway
         run: |
