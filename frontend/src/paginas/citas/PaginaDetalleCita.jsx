@@ -7,6 +7,7 @@ import api from '../../servicios/api';
 import { usarAutenticacion } from '../../contexto/ContextoAutenticacion';
 import { Video } from 'lucide-react';
 import ResumenPagoCita from '../../componentes/pagos/ResumenPagoCita';
+import TarjetaTelemetriaCita from '../../componentes/iot/TarjetaTelemetriaCita';
 
 export default function PaginaDetalleCita() {
   const { id } = useParams();
@@ -117,6 +118,8 @@ export default function PaginaDetalleCita() {
             <p className="bg-gray-50 dark:bg-gray-700 p-4 rounded dark:text-gray-200 whitespace-pre-wrap">{cita.motivo_consulta}</p>
           </div>
         )}
+
+        <TarjetaTelemetriaCita cita={cita} />
 
         <ResumenPagoCita cita={cita} esPaciente={esPaciente} />
 

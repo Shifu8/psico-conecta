@@ -6,6 +6,7 @@ import { useCitas } from '../../hooks/useCitas';
 import SlotSelector from '../../componentes/citas/SlotSelector';
 import api from '../../servicios/api';
 import AvatarUsuario from '../../componentes/AvatarUsuario';
+import SimuladorSensorRitmo from '../../componentes/iot/SimuladorSensorRitmo';
 
 const fechaLocalISO = () => {
   const ahora = new Date();
@@ -27,6 +28,7 @@ export default function PaginaAgendarCita() {
   const [loadingPsicologos, setLoadingPsicologos] = useState(true);
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
+  const [datosTelemetria, setDatosTelemetria] = useState(null);
 
   useEffect(() => {
     const cargarPsicologos = async () => {
@@ -62,12 +64,18 @@ export default function PaginaAgendarCita() {
 
     const fechaHoraInicio = selectedSlot.fecha_hora_inicio || `${fecha}T${selectedSlot.hora_inicio}`;
 
+    let motivoFinal = motivo;
+    if (datosTelemetria) {
+      const notaIoT = `[Telemetría IoT Cardíaca: ${datosTelemetria.bpm_promedio} BPM | Nivel Estrés: ${datosTelemetria.nivel_estres} | ${datosTelemetria.estado_cardiaco}]`;
+      motivoFinal = motivo ? `${motivo}\n\n${notaIoT}` : notaIoT;
+    }
+
     try {
       await agendarCita({
         psicologo_id: Number(psicologoId),
         fecha_hora_inicio: fechaHoraInicio,
         modalidad: modalidad,
-        motivo_consulta: motivo
+        motivo_consulta: motivoFinal
       });
       setMensaje('¡Cita agendada correctamente!');
       setError('');
@@ -248,6 +256,9 @@ export default function PaginaAgendarCita() {
                   maxLength={500}
                 />
               </div>
+
+              {/* Simulador IoT Sensor de Ritmo Cardíaco */}
+              <SimuladorSensorRitmo onMedicionCompletada={(data) => setDatosTelemetria(data)} />
 
               {/* Modalidad */}
               <div>
