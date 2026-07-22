@@ -7,7 +7,7 @@
   "memory": "512",
   "containerDefinitions": [{
     "name": "puerta-enlace",
-    "image": "ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/puerta-enlace:latest",
+    "image": "060899556466.dkr.ecr.us-east-2.amazonaws.com/psicoconecta/puerta-enlace:latest",
     "essential": true,
     "portMappings": [{"name": "puerta-enlace", "containerPort": 5000, "protocol": "tcp"}],
     "environment": [
@@ -22,3 +22,4 @@
     "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": "/ecs/psicoconecta-puerta-enlace", "awslogs-region": "us-east-2", "awslogs-stream-prefix": "ecs"}}
   }]
 }
+

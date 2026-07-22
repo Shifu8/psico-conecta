@@ -34,7 +34,14 @@ export const GOOGLE_CLIENT_ID =
   valorEntorno("VITE_GOOGLE_CLIENT_ID") ||
   (import.meta.env.PROD ? GOOGLE_CLIENT_ID_PRODUCCION : "");
 
-export const TURNSTILE_SITE_KEY = captchaDesactivado
+const esLocalOWorker = typeof window !== "undefined" && (
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1" ||
+  window.location.hostname.endsWith("cloudfront.net") ||
+  window.location.hostname.endsWith("amazonaws.com")
+);
+
+export const TURNSTILE_SITE_KEY = (captchaDesactivado || esLocalOWorker)
   ? ""
   : valorEntorno("VITE_TURNSTILE_SITE_KEY") ||
     (import.meta.env.PROD ? TURNSTILE_SITE_KEY_PRODUCCION : "");

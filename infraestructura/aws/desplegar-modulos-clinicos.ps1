@@ -20,7 +20,8 @@ $usuarios = @{ name = "usuarios"; container = "usuarios"; port = 5001; dockerfil
 $servicios = @(
     @{ name = "citas"; container = "citas"; port = 5002; dockerfile = "backend/servicios/servicio-citas/Dockerfile"; taskDef = "infraestructura/aws/task-definition-citas.json"; tg = "psicoconecta-citas-tg"; paths = @("/api/citas*", "/api/disponibilidad*"); priority = 10 },
     @{ name = "teleconsulta"; container = "teleconsulta"; port = 5003; dockerfile = "backend/servicios/servicio-teleconsulta/Dockerfile"; taskDef = "infraestructura/aws/task-definition-teleconsulta.json"; tg = "psicoconecta-teleconsulta-tg"; paths = @("/api/teleconsultas*"); priority = 30 },
-    @{ name = "pagos"; container = "pagos"; port = 5004; dockerfile = "backend/servicios/servicio-pagos/Dockerfile"; taskDef = "infraestructura/aws/task-definition-pagos.json"; tg = "psicoconecta-pagos-tg"; paths = @("/api/pagos*"); priority = 40 }
+    @{ name = "pagos"; container = "pagos"; port = 5004; dockerfile = "backend/servicios/servicio-pagos/Dockerfile"; taskDef = "infraestructura/aws/task-definition-pagos.json"; tg = "psicoconecta-pagos-tg"; paths = @("/api/pagos*"); priority = 40 },
+    @{ name = "iot"; container = "iot"; port = 5005; dockerfile = "backend/servicios/servicio-inteligencia-iot/Dockerfile"; taskDef = "infraestructura/aws/task-definition-iot.json"; tg = "psicoconecta-iot-tg"; paths = @("/api/iot*"); priority = 50 }
 )
 
 if ($BuildImages) {
@@ -41,9 +42,13 @@ $subnetList = $subnets -split "\s+" | Where-Object { $_ }
 $subnetCsv = $subnetList -join ","
 $albSgId = aws ec2 describe-security-groups --filters "Name=group-name,Values=$AlbSgName" "Name=vpc-id,Values=$vpcId" --region $Region --query "SecurityGroups[0].GroupId" --output text
 $albArn = aws elbv2 describe-load-balancers --names $AlbName --region $Region --query "LoadBalancers[0].LoadBalancerArn" --output text
-$listenerArn = aws elbv2 describe-listeners --load-balancer-arn $albArn --region $Region --query "Listeners[?Port==`80`].ListenerArn | [0]" --output text
+$listenerArn = aws elbv2 describe-listeners --load-balancer-arn $albArn --region $Region --query "Listeners[0].ListenerArn" --output text
 
+$oldAction = $ErrorActionPreference
+$ErrorActionPreference = "SilentlyContinue"
+$usuariosTargetGroupArn = $null
 $usuariosTargetGroupArn = aws elbv2 describe-target-groups --names $usuarios.tg --region $Region --query "TargetGroups[0].TargetGroupArn" --output text 2>$null
+$ErrorActionPreference = $oldAction
 if ($LASTEXITCODE -ne 0 -or -not $usuariosTargetGroupArn -or $usuariosTargetGroupArn -eq "None") {
     $usuariosTargetGroupArn = aws elbv2 create-target-group --name $usuarios.tg --protocol HTTP --port $usuarios.port --target-type ip --vpc-id $vpcId --health-check-path /health --region $Region --query "TargetGroups[0].TargetGroupArn" --output text
 }
@@ -53,13 +58,27 @@ aws elbv2 modify-listener --listener-arn $listenerArn --default-actions "Type=fo
 $usuariosTaskDefArn = aws ecs register-task-definition --cli-input-json "file://$($usuarios.taskDef)" --region $Region --query "taskDefinition.taskDefinitionArn" --output text
 $usuariosNetwork = "awsvpcConfiguration={subnets=[$subnetCsv],securityGroups=[$albSgId],assignPublicIp=ENABLED}"
 $usuariosLb = "targetGroupArn=$usuariosTargetGroupArn,containerName=$($usuarios.container),containerPort=$($usuarios.port)"
-aws ecs update-service --cluster $Cluster --service usuarios --task-definition $usuariosTaskDefArn --load-balancers $usuariosLb --network-configuration $usuariosNetwork --health-check-grace-period-seconds 60 --force-new-deployment --region $Region | Out-Null
+$existingUsuarios = aws ecs describe-services --cluster $Cluster --services usuarios --region $Region --query "services[?status=='ACTIVE'].serviceName" --output text
+if ($existingUsuarios) {
+    aws ecs update-service --cluster $Cluster --service usuarios --task-definition $usuariosTaskDefArn --load-balancers $usuariosLb --network-configuration $usuariosNetwork --health-check-grace-period-seconds 60 --force-new-deployment --region $Region | Out-Null
+} else {
+    aws ecs create-service --cluster $Cluster --service-name usuarios --task-definition $usuariosTaskDefArn --desired-count 1 --launch-type FARGATE --load-balancers $usuariosLb --network-configuration $usuariosNetwork --health-check-grace-period-seconds 60 --region $Region | Out-Null
+}
+
 
 foreach ($svc in $servicios) {
     Write-Host "Preparando $($svc.name)..." -ForegroundColor Yellow
+    $oldAction = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
     aws logs create-log-group --log-group-name "/ecs/psicoconecta-$($svc.name)" --region $Region 2>$null | Out-Null
+    $ErrorActionPreference = $oldAction
 
+
+    $oldAction = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
+    $targetGroupArn = $null
     $targetGroupArn = aws elbv2 describe-target-groups --names $svc.tg --region $Region --query "TargetGroups[0].TargetGroupArn" --output text 2>$null
+    $ErrorActionPreference = $oldAction
     if ($LASTEXITCODE -ne 0 -or -not $targetGroupArn -or $targetGroupArn -eq "None") {
         $targetGroupArn = aws elbv2 create-target-group --name $svc.tg --protocol HTTP --port $svc.port --target-type ip --vpc-id $vpcId --health-check-path /health --region $Region --query "TargetGroups[0].TargetGroupArn" --output text
     }
@@ -90,10 +109,10 @@ foreach ($svc in $servicios) {
     }
 }
 
-aws ecs wait services-stable --cluster $Cluster --services usuarios citas teleconsulta pagos --region $Region
+aws ecs wait services-stable --cluster $Cluster --services usuarios citas teleconsulta pagos iot --region $Region
 
 if ($CloudFrontId) {
     aws cloudfront create-invalidation --distribution-id $CloudFrontId --paths "/api/*" | Out-Null
 }
 
-Write-Host "Usuarios y modulos clinicos desplegados: citas, teleconsulta y pagos." -ForegroundColor Green
+Write-Host "Usuarios, modulos clinicos y servicio IoT desplegados: usuarios, citas, teleconsulta, pagos e iot." -ForegroundColor Green

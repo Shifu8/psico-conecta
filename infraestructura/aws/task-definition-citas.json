@@ -18,10 +18,10 @@
         {"name": "DATABASE_SCHEMA", "value": "citas_schema"},
         {"name": "TIMEZONE", "value": "America/Guayaquil"},
         {"name": "CORS_ORIGINS", "value": "https://psico-conecta.brandon-medina.workers.dev,https://d1wkhs3cq8vcom.cloudfront.net,http://psicoconecta-frontend-060899556466.s3-website.us-east-2.amazonaws.com"},
-        {"name": "USERS_SERVICE_URL", "value": "http://usuarios:5001"},
+        {"name": "USERS_SERVICE_URL", "value": "http://psicoconecta-alb-1474977642.us-east-2.elb.amazonaws.com"},
         {"name": "VALIDAR_USUARIO_REMOTO", "value": "false"},
-        {"name": "TELECONSULTA_SERVICE_URL", "value": "http://teleconsulta:5003"},
-        {"name": "PAGOS_SERVICE_URL", "value": "http://pagos:5004"}
+        {"name": "TELECONSULTA_SERVICE_URL", "value": "http://psicoconecta-alb-1474977642.us-east-2.elb.amazonaws.com"},
+        {"name": "PAGOS_SERVICE_URL", "value": "http://psicoconecta-alb-1474977642.us-east-2.elb.amazonaws.com"}
       ],
       "secrets": [
         {"name": "DATABASE_URL", "valueFrom": "arn:aws:secretsmanager:us-east-2:060899556466:secret:psicoconecta/DATABASE_URL"},
@@ -41,3 +41,4 @@
     }
   ]
 }
+

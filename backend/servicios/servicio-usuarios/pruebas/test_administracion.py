@@ -1,4 +1,4 @@
-﻿# Archivo: test_administracion.py
+# Archivo: test_administracion.py
 # Descripción: Módulo de lógica de negocio, rutas o configuración.
 # Módulo: Servicio Usuarios
 
@@ -99,7 +99,7 @@ def test_auditoria_registra_login_fallido(client, admin_headers):
         "/api/usuarios/autenticacion/inicio-sesion",
         json={"email": "paciente@psicoconecta.com", "password": "Incorrecta123*"},
     )
-    assert fallo.status_code == 400
+    assert fallo.status_code == 401
 
     response = client.get("/api/usuarios/auditoria/resumen", headers=admin_headers)
     assert response.status_code == 200

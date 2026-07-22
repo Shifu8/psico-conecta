@@ -1,4 +1,4 @@
-﻿# Archivo: test_autenticacion.py
+# Archivo: test_autenticacion.py
 # Descripción: Módulo de lógica de negocio, rutas o configuración.
 # Módulo: Servicio Usuarios
 
@@ -184,7 +184,7 @@ def test_login_credenciales_incorrectas(client):
         "/api/usuarios/autenticacion/inicio-sesion",
         json={"email": "noexiste@example.com", "password": "Clave123*"},
     )
-    assert response.status_code == 400
+    assert response.status_code == 401
     assert "incorrectos" in response.json["message"]
 
 
@@ -202,7 +202,7 @@ def test_login_contrasena_incorrecta(client):
         "/api/usuarios/autenticacion/inicio-sesion",
         json={"email": "luis@example.com", "password": "OtraClave123*"},
     )
-    assert response.status_code == 400
+    assert response.status_code == 401
 
 
 def test_login_usuario_inactivo(client):

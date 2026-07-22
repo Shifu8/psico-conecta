@@ -1,4 +1,4 @@
-﻿# Archivo: desplegar-todo.ps1
+# Archivo: desplegar-todo.ps1
 # Descripción: Script de automatización de tareas y despliegue.
 # Módulo: Infraestructura
 
@@ -257,6 +257,8 @@ npm run build
 if ($LASTEXITCODE -eq 0) {
     aws s3 sync dist/ "s3://$FrontendBucket/" --delete
     Write-Host "  Frontend subido a S3" -ForegroundColor Green
+    aws cloudfront create-invalidation --distribution-id E393PT7BRP38C3 --paths "/*" 2>$null | Out-Null
+    Write-Host "  Caché de CloudFront invalidada" -ForegroundColor Green
 } else {
     Write-Host "  [!] Fallo el build del frontend" -ForegroundColor Red
 }

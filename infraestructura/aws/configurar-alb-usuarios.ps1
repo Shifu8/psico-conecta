@@ -105,8 +105,13 @@ if ($LASTEXITCODE -ne 0 -or -not $listenerArn -or $listenerArn -eq "None") {
 }
 
 # 6. Asociar ECS servicio con ALB
-Write-Host "Conectando el servicio ECS $Service al balanceador..." -ForegroundColor Yellow
-aws ecs update-service --cluster $Cluster --service $Service --task-definition $TaskDefinition --load-balancers "targetGroupArn=$targetGroupArn,containerName=$ContainerName,containerPort=$ContainerPort" --network-configuration "awsvpcConfiguration={subnets=[$subnetsCsv],securityGroups=[$taskSgId],assignPublicIp=ENABLED}" --health-check-grace-period-seconds 60 --force-new-deployment --region $Region | Out-Null
+$existingSvc = aws ecs describe-services --cluster $Cluster --services $Service --region $Region --query "services[?status=='ACTIVE'].serviceName" --output text
+if ($existingSvc) {
+    aws ecs update-service --cluster $Cluster --service $Service --task-definition $TaskDefinition --load-balancers "targetGroupArn=$targetGroupArn,containerName=$ContainerName,containerPort=$ContainerPort" --network-configuration "awsvpcConfiguration={subnets=[$subnetsCsv],securityGroups=[$taskSgId],assignPublicIp=ENABLED}" --health-check-grace-period-seconds 60 --force-new-deployment --region $Region | Out-Null
+} else {
+    aws ecs create-service --cluster $Cluster --service-name $Service --task-definition $TaskDefinition --desired-count 1 --launch-type FARGATE --load-balancers "targetGroupArn=$targetGroupArn,containerName=$ContainerName,containerPort=$ContainerPort" --network-configuration "awsvpcConfiguration={subnets=[$subnetsCsv],securityGroups=[$taskSgId],assignPublicIp=ENABLED}" --health-check-grace-period-seconds 60 --region $Region | Out-Null
+}
+
 
 Write-Host "Esperando a que el servicio ECS quede estable..." -ForegroundColor Yellow
 aws ecs wait services-stable --cluster $Cluster --services $Service --region $Region

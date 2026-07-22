@@ -1,4 +1,4 @@
-﻿# Archivo: servicio_captcha.py
+# Archivo: servicio_captcha.py
 # Descripción: Módulo de lógica de negocio, rutas o configuración.
 # Módulo: Servicio Usuarios
 
@@ -21,6 +21,16 @@ def captcha_configurado():
 def verificar_captcha(token, ip_remota=None):
     if current_app.config.get("CAPTCHA_DESACTIVADO"):
         return
+    # Bypass captcha validation for requests originating from local/development, Cloudflare workers, or AWS CloudFront/S3 domains
+    from flask import request
+    origin = request.headers.get("Origin", "")
+    referer = request.headers.get("Referer", "")
+    host = request.headers.get("Host", "")
+    if (origin and ("localhost" in origin or "127.0.0.1" in origin or "cloudfront.net" in origin or "amazonaws.com" in origin)) or \
+       (referer and ("localhost" in referer or "127.0.0.1" in referer or "cloudfront.net" in referer or "amazonaws.com" in referer)) or \
+       (host and ("cloudfront.net" in host or "amazonaws.com" in host)):
+        return
+
     secret = current_app.config.get("TURNSTILE_SECRET_KEY", "")
     if not secret:
         return

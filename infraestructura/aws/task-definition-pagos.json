@@ -19,8 +19,8 @@
         {"name": "TIMEZONE", "value": "America/Guayaquil"},
         {"name": "FRONTEND_URL", "value": "https://psico-conecta.brandon-medina.workers.dev"},
         {"name": "CORS_ORIGINS", "value": "https://psico-conecta.brandon-medina.workers.dev,https://d1wkhs3cq8vcom.cloudfront.net,http://psicoconecta-frontend-060899556466.s3-website.us-east-2.amazonaws.com"},
-        {"name": "USERS_SERVICE_URL", "value": "http://usuarios:5001"},
-        {"name": "CITAS_SERVICE_URL", "value": "http://citas:5002"},
+        {"name": "USERS_SERVICE_URL", "value": "http://psicoconecta-alb-1474977642.us-east-2.elb.amazonaws.com"},
+        {"name": "CITAS_SERVICE_URL", "value": "http://psicoconecta-alb-1474977642.us-east-2.elb.amazonaws.com"},
         {"name": "VALIDAR_USUARIO_REMOTO", "value": "false"},
         {"name": "DEFAULT_CONSULTATION_PRICE_CENTS", "value": "3000"},
         {"name": "DEFAULT_CURRENCY", "value": "USD"},
@@ -45,3 +45,4 @@
     }
   ]
 }
+

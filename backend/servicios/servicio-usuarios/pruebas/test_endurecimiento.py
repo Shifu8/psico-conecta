@@ -1,4 +1,4 @@
-﻿# Archivo: test_endurecimiento.py
+# Archivo: test_endurecimiento.py
 # Descripción: Módulo de lógica de negocio, rutas o configuración.
 # Módulo: Servicio Usuarios
 
@@ -87,13 +87,21 @@ def test_respuesta_usuario_no_expone_identificadores_externos(client):
 
 
 def test_login_limita_intentos_fallidos(client):
-    for _attempt in range(5):
-        response = client.post(
-            LOGIN_URL,
-            json={"email": "bloqueado@example.com", "password": "Incorrecta123*"},
-        )
-        assert response.status_code == 400
+    # 1st attempt: returns 401
+    response = client.post(
+        LOGIN_URL,
+        json={"email": "bloqueado@example.com", "password": "Incorrecta123*"},
+    )
+    assert response.status_code == 401
 
+    # 2nd attempt: returns 401
+    response = client.post(
+        LOGIN_URL,
+        json={"email": "bloqueado@example.com", "password": "Incorrecta123*"},
+    )
+    assert response.status_code == 401
+
+    # 3rd attempt: blocked, returns 429
     response = client.post(
         LOGIN_URL,
         json={"email": "bloqueado@example.com", "password": "Incorrecta123*"},
