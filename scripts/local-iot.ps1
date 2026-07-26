@@ -25,9 +25,9 @@ $env:DYNAMODB_TABLE_LECTURAS_IOT = "lecturas_iot"
 
 # 1. Iniciar Flask API en segundo plano
 Write-Host "[Módulo 5] Iniciando Flask API (Analítica e IoT) en puerto 5005..." -ForegroundColor Green
-Start-Process -NoNewWindow -FilePath $venvPython -ArgumentList "aplicacion.py"
+Start-Process -NoNewWindow -FilePath $venvPython -ArgumentList "-u aplicacion.py"
 
 # 2. Iniciar WebSocket Server en primer plano
 Write-Host "[Módulo 5] Iniciando WebSocket Server (Telemetría) en puerto 5006..." -ForegroundColor Green
 Set-Location telemetria
-& $venvPython ejecutar.py
+& $venvPython -u ejecutar.py

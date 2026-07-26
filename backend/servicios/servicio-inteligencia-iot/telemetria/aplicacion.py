@@ -23,12 +23,16 @@ except Exception as e:
     print(f"[!] Advertencia: Error inicializando DynamoDB: {e}")
     table = None
 
-# Clientes web: patient_id -> set de websockets
+# Clientes web: cita_id -> set de websockets
 web_clients = {}
-# Conexiones ESP32: patient_id -> websocket
+# Conexiones ESP32: cita_id -> websocket
 esp32_connections = {}
-# Buffer en memoria de lecturas de la ESP32: patient_id -> list of raw_values
-buffer_pacientes = {}
+# Buffer en memoria de lecturas de la ESP32: cita_id -> list of raw_values
+buffer_citas = {}
+
+# Mapeos activos de sesión para enlazar la ESP32 si conecta por canal general /esp32
+cita_to_patient = {}
+patient_to_cita = {}
 
 # Mapeo global de identificadores a nombres de pacientes
 PACIENTES_MAP = {
@@ -67,48 +71,62 @@ async def loop_limpieza_buffer():
     while True:
         await asyncio.sleep(2.0)
         # Recorrer de forma segura los buffers existentes
-        for p_id in list(buffer_pacientes.keys()):
-            if buffer_pacientes[p_id]:
-                # Extracción atómica para evitar colisiones
-                lote_a_guardar = list(buffer_pacientes[p_id])
-                buffer_pacientes[p_id].clear()
+        for c_id in list(buffer_citas.keys()):
+            if buffer_citas[c_id]:
+                p_id = cita_to_patient.get(c_id, "unknown")
+                lote_a_guardar = list(buffer_citas[c_id])
+                buffer_citas[c_id].clear()
                 asyncio.create_task(guardar_batch_dynamodb(p_id, lote_a_guardar))
 
-async def registrar_cliente_web(patient_id, websocket):
-    if patient_id not in web_clients:
-        web_clients[patient_id] = set()
-    web_clients[patient_id].add(websocket)
+async def registrar_cliente_web(cita_id, patient_id, websocket):
+    cita_id = str(cita_id)
+    patient_id = str(patient_id)
     
-    # Notificar estado inicial de la placa ESP32
-    estado_esp32 = "connected" if patient_id in esp32_connections else "disconnected"
+    # Enlazar la sesión activa para la ESP32
+    cita_to_patient[cita_id] = patient_id
+    patient_to_cita[patient_id] = cita_id
+
+    if cita_id not in web_clients:
+        web_clients[cita_id] = set()
+    web_clients[cita_id].add(websocket)
+    
+    # Notificar estado inicial de la placa ESP32 para esta cita
+    estado_esp32 = "connected" if cita_id in esp32_connections else "disconnected"
     await websocket.send(json.dumps({
         "type": "status",
         "status": estado_esp32
     }))
 
-async def desregistrar_cliente_web(patient_id, websocket):
-    if patient_id in web_clients:
-        web_clients[patient_id].discard(websocket)
-        if not web_clients[patient_id]:
-            del web_clients[patient_id]
+async def desregistrar_cliente_web(cita_id, websocket):
+    cita_id = str(cita_id)
+    if cita_id in web_clients:
+        web_clients[cita_id].discard(websocket)
+        if not web_clients[cita_id]:
+            del web_clients[cita_id]
+            # Limpiar mapeo si ya no hay nadie conectado a esta cita
+            p_id = cita_to_patient.pop(cita_id, None)
+            if p_id:
+                patient_to_cita.pop(p_id, None)
 
-async def notificar_estado_esp32(patient_id, estado):
-    if patient_id in web_clients:
+async def notificar_estado_esp32(cita_id, estado):
+    cita_id = str(cita_id)
+    if cita_id in web_clients:
         mensaje = json.dumps({
             "type": "status",
             "status": estado
         })
-        tasks = [asyncio.create_task(client.send(mensaje)) for client in web_clients[patient_id]]
+        tasks = [asyncio.create_task(client.send(mensaje)) for client in web_clients[cita_id]]
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
 
-async def retransmitir_datos(patient_id, datos):
-    if patient_id in web_clients:
+async def retransmitir_datos(cita_id, datos):
+    cita_id = str(cita_id)
+    if cita_id in web_clients:
         mensaje = json.dumps({
             "type": "data",
             "data": datos
         })
-        tasks = [asyncio.create_task(client.send(mensaje)) for client in web_clients[patient_id]]
+        tasks = [asyncio.create_task(client.send(mensaje)) for client in web_clients[cita_id]]
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -118,8 +136,32 @@ async def handler(websocket, path):
     query_params = parse_qs(parsed_url.query)
     actual_path = parsed_url.path
     
-    # Determinar si es placa ESP32 o panel del psicólogo
-    is_esp32 = "esp32" in actual_path
+    clean_path = actual_path.strip("/")
+    parts = clean_path.split("/")
+    
+    # Buscar cita_id y determinar si es conexión de hardware (ESP32)
+    cita_id = None
+    is_esp32 = "esp32" in parts or "esp32" in actual_path
+    
+    if is_esp32:
+        # Rutas ESP32 posibles:
+        # - esp32/<cita_id>
+        # - api/telemetria/ws/<cita_id>/esp32
+        # - esp32 (canal general sin cita_id en el path, se resuelve por paciente)
+        if len(parts) >= 2 and parts[0] == "esp32":
+            cita_id = parts[1]
+        elif len(parts) >= 4 and parts[2] == "ws" and parts[-1] == "esp32":
+            cita_id = parts[3]
+    else:
+        # Rutas Cliente Web posibles:
+        # - api/telemetria/ws/<cita_id>
+        # - ws/<cita_id>
+        if len(parts) >= 4 and parts[2] == "ws":
+            cita_id = parts[3]
+        elif len(parts) >= 2 and parts[0] == "ws":
+            cita_id = parts[1]
+            
+    print(f"[WS] Nueva conexión. Path: {actual_path}, is_esp32: {is_esp32}, cita_id: {cita_id}")
     
     if is_esp32:
         # Validar llave de seguridad estática
@@ -133,7 +175,7 @@ async def handler(websocket, path):
             return
             
         print("[+] Conexión de ESP32 autenticada exitosamente.")
-        patient_id = None
+        current_cita_id = None
         
         try:
             async for message in websocket:
@@ -143,47 +185,53 @@ async def handler(websocket, path):
                     if not val_patient_id:
                         continue
                     
-                    if patient_id != val_patient_id:
-                        if patient_id and esp32_connections.get(patient_id) == websocket:
-                            del esp32_connections[patient_id]
-                            await notificar_estado_esp32(patient_id, "disconnected")
+                    # Resolver cita_id si no se obtuvo del path
+                    actual_cita_id = cita_id or patient_to_cita.get(val_patient_id)
+                    if not actual_cita_id:
+                        actual_cita_id = f"fallback_{val_patient_id}"
+                    
+                    if current_cita_id != actual_cita_id:
+                        if current_cita_id and esp32_connections.get(current_cita_id) == websocket:
+                            del esp32_connections[current_cita_id]
+                            await notificar_estado_esp32(current_cita_id, "disconnected")
                             
-                        patient_id = val_patient_id
-                        esp32_connections[patient_id] = websocket
-                        await notificar_estado_esp32(patient_id, "connected")
+                        current_cita_id = actual_cita_id
+                        esp32_connections[current_cita_id] = websocket
+                        await notificar_estado_esp32(current_cita_id, "connected")
                         
-                    await retransmitir_datos(patient_id, data)
+                    await retransmitir_datos(current_cita_id, data)
                     
                     # Persistencia en búfer para DynamoDB
                     raw_value = data.get("raw_value")
                     if raw_value is not None:
-                        if patient_id not in buffer_pacientes:
-                            buffer_pacientes[patient_id] = []
-                        buffer_pacientes[patient_id].append(int(raw_value))
+                        if current_cita_id not in buffer_citas:
+                            buffer_citas[current_cita_id] = []
+                        buffer_citas[current_cita_id].append(int(raw_value))
                         
                         # Vaciado atómico al llegar a 100 elementos
-                        if len(buffer_pacientes[patient_id]) >= 100:
-                            lote_a_guardar = list(buffer_pacientes[patient_id])
-                            buffer_pacientes[patient_id].clear()
-                            asyncio.create_task(guardar_batch_dynamodb(patient_id, lote_a_guardar))
+                        if len(buffer_citas[current_cita_id]) >= 100:
+                            lote_a_guardar = list(buffer_citas[current_cita_id])
+                            buffer_citas[current_cita_id].clear()
+                            real_p_id = cita_to_patient.get(current_cita_id, val_patient_id)
+                            asyncio.create_task(guardar_batch_dynamodb(real_p_id, lote_a_guardar))
                 except json.JSONDecodeError:
                     pass
         except Exception as e:
             print(f"[-] Error en canal ESP32: {e}")
         finally:
-            if patient_id:
-                if esp32_connections.get(patient_id) == websocket:
-                    del esp32_connections[patient_id]
-                await notificar_estado_esp32(patient_id, "disconnected")
+            if current_cita_id:
+                if esp32_connections.get(current_cita_id) == websocket:
+                    del esp32_connections[current_cita_id]
+                await notificar_estado_esp32(current_cita_id, "disconnected")
             print("[-] Conexión de ESP32 finalizada.")
             
     else:
-        # Cliente web (Psicólogo)
+        # Cliente web (Psicólogo o Paciente)
         token = query_params.get("token", [None])[0]
         patient_id = query_params.get("patient_id", [None])[0]
         
-        if not token or not patient_id:
-            print("[-] Conexión web rechazada: Falta token o patient_id.")
+        if not token or not patient_id or not cita_id:
+            print(f"[-] Conexión web rechazada: Parámetros incompletos. token={bool(token)}, patient_id={patient_id}, cita_id={cita_id}")
             await websocket.close(1008, "Parámetros incompletos")
             return
             
@@ -191,7 +239,7 @@ async def handler(websocket, path):
         try:
             payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"])
             role = payload.get("role") or payload.get("user_claims", {}).get("role")
-            if role != "PSYCHOLOGIST":
+            if role not in ["PSYCHOLOGIST", "PATIENT"]:
                 print(f"[-] Acceso denegado: El rol '{role}' no está autorizado.")
                 await websocket.close(1008, "No autorizado")
                 return
@@ -201,8 +249,10 @@ async def handler(websocket, path):
             return
             
         patient_id = str(patient_id)
-        await registrar_cliente_web(patient_id, websocket)
-        print(f"[+] Psicólogo conectado para monitorear paciente {patient_id}.")
+        cita_id = str(cita_id)
+        
+        await registrar_cliente_web(cita_id, patient_id, websocket)
+        print(f"[+] Cliente web ({role}) conectado para la cita {cita_id} (paciente {patient_id}).")
         
         try:
             async for message in websocket:
@@ -210,5 +260,5 @@ async def handler(websocket, path):
         except Exception as e:
             pass
         finally:
-            await desregistrar_cliente_web(patient_id, websocket)
-            print(f"[-] Psicólogo desconectado del paciente {patient_id}.")
+            await desregistrar_cliente_web(cita_id, websocket)
+            print(f"[-] Cliente web ({role}) desconectado de la cita {cita_id}.")

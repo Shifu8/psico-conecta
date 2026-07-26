@@ -33,11 +33,16 @@ def generar_lectura_ppg(t, bpm=72):
     raw_val = int(base + (sistole + dicrota + ruido) * amplitud)
     return max(0, min(1023, raw_val))
 
-async def simular_captura(patient_id=4, duracion_segundos=15, bpm_base=75):
+async def simular_captura(patient_id=4, duracion_segundos=15, bpm_base=75, cita_id=None):
     """
     Simula la transmisión de telemetría de una ESP32 durante 'duracion_segundos'.
     """
-    url_con_token = f"{WEBSOCKET_URL}?device_token={DEVICE_TOKEN}"
+    url_base = WEBSOCKET_URL
+    if cita_id:
+        # Reemplazar la ruta clásica por la ruta segmentada por cita
+        url_base = WEBSOCKET_URL.replace("/ws/esp32", f"/ws/{cita_id}/esp32").replace("/esp32", f"/ws/{cita_id}/esp32")
+        
+    url_con_token = f"{url_base}?device_token={DEVICE_TOKEN}"
     print(f"[Simulador ESP32] Conectando a {url_con_token} para paciente #{patient_id}...")
     
     try:
@@ -83,4 +88,5 @@ async def simular_captura(patient_id=4, duracion_segundos=15, bpm_base=75):
 if __name__ == "__main__":
     patient_id = sys.argv[1] if len(sys.argv) > 1 else "4"
     duracion = int(sys.argv[2]) if len(sys.argv) > 2 else 15
-    asyncio.run(simular_captura(patient_id=patient_id, duracion_segundos=duracion))
+    cita_id = sys.argv[3] if len(sys.argv) > 3 else None
+    asyncio.run(simular_captura(patient_id=patient_id, duracion_segundos=duracion, cita_id=cita_id))

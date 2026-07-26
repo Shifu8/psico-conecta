@@ -6,7 +6,6 @@ import { useCitas } from '../../hooks/useCitas';
 import SlotSelector from '../../componentes/citas/SlotSelector';
 import api from '../../servicios/api';
 import AvatarUsuario from '../../componentes/AvatarUsuario';
-import SimuladorSensorRitmo from '../../componentes/iot/SimuladorSensorRitmo';
 
 const fechaLocalISO = () => {
   const ahora = new Date();
@@ -256,9 +255,6 @@ export default function PaginaAgendarCita() {
                   maxLength={500}
                 />
               </div>
-
-              {/* Simulador IoT Sensor de Ritmo Cardíaco */}
-              <SimuladorSensorRitmo onMedicionCompletada={(data) => setDatosTelemetria(data)} />
 
               {/* Modalidad */}
               <div>

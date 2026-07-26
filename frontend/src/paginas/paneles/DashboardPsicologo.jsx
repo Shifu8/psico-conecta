@@ -7,6 +7,9 @@ import EncabezadoPanel from "./EncabezadoPanel";
 
 export default function DashboardPsicologo() {
   const { patientId } = useParams();
+  const { usuario } = usarAutenticacion();
+  const esPsicologo = usuario?.role === 'PSYCHOLOGIST' || usuario?.role?.name === 'PSYCHOLOGIST';
+
   const [datos, setDatos] = useState([]);
   const [estadoConexion, setEstadoConexion] = useState("conectando");
   const [esp32Conectado, setEsp32Conectado] = useState(false);
@@ -134,7 +137,7 @@ export default function DashboardPsicologo() {
     <>
       <div className="flex items-center gap-3 mt-4">
         <Link
-          to="/psicologo"
+          to={esPsicologo ? "/psicologo" : "/paciente"}
           className="flex items-center justify-center h-10 w-10 rounded-2xl bg-white border border-slate-100 text-slate-600 hover:bg-slate-50 transition shadow-sm dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"
         >
           <ArrowLeft size={18} />
@@ -144,8 +147,8 @@ export default function DashboardPsicologo() {
 
       <EncabezadoPanel
         etiqueta="Monitoreo IoT en tiempo real"
-        titulo={`Señales Biométricas - Paciente #${patientId}`}
-        texto="Visualización de telemetría de pulsaciones cardíacas recibidas directamente desde el sensor biométrico."
+        titulo={esPsicologo ? `Señales Biométricas - Paciente #${patientId}` : "Mis Señales Biométricas - Sensor IoT"}
+        texto={esPsicologo ? "Visualización de telemetría de pulsaciones cardíacas recibidas directamente desde el sensor biométrico." : "Visualización en tiempo real de tus pulsaciones cardíacas enviadas a tu terapeuta."}
       />
 
       {/* Alertas de Estado de Conexión */}
@@ -214,9 +217,13 @@ export default function DashboardPsicologo() {
         {!esp32Conectado ? (
           <div className="h-96 rounded-2xl bg-slate-50 flex flex-col items-center justify-center p-6 border border-dashed border-slate-200 dark:bg-slate-800/40 dark:border-slate-700">
             <AlertTriangle size={48} className="text-amber-500 mb-3" />
-            <h3 className="text-md font-bold text-slate-800 dark:text-slate-200">Esperando conexión de la placa ESP32</h3>
+            <h3 className="text-md font-bold text-slate-800 dark:text-slate-200">
+              {esPsicologo ? "Esperando conexión de la placa ESP32" : "Esperando conexión de tu dispositivo"}
+            </h3>
             <p className="text-xs text-slate-400 mt-1 max-w-sm text-center">
-              Enciende el dispositivo del paciente. Los datos de telemetría comenzarán a graficarse de forma automática en cuanto se establezca enlace.
+              {esPsicologo 
+                ? "Enciende el dispositivo del paciente. Los datos de telemetría comenzarán a graficarse de forma automática en cuanto se establezca enlace."
+                : "Enciende tu dispositivo. Tus datos de telemetría comenzarán a graficarse de forma automática en cuanto se establezca enlace."}
             </p>
           </div>
         ) : (

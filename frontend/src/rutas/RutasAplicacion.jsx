@@ -61,6 +61,7 @@ export default function RutasAplicacion() {
           </Route>
           <Route element={<RutaRol roles={["PATIENT"]} />}>
             <Route path="/paciente" element={<PanelPaciente />} />
+            <Route path="/paciente/telemetria/:patientId" element={<DashboardPsicologo />} />
             <Route path="/citas/agendar" element={<PaginaAgendarCita />} />
           </Route>
         </Route>
