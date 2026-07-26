@@ -16,11 +16,11 @@
 const char* WIFI_SSID = "marinerito";
 const char* WIFI_PASS = "123456789";
 
-// Dirección y puerto de Nginx (reverse proxy de telemetría)
-const char* SERVER_HOST = "192.168.1.100"; // Cambiar por la IP local del servidor
-const uint16_t SERVER_PORT = 8080;
-const char* PATIENT_ID = "1"; // ID del paciente asociado a este dispositivo
-const char* DEVICE_TOKEN = "esp32_secret_device_token_2026"; // Llave estática de seguridad
+// Dirección y puerto del Load Balancer de AWS
+const char* SERVER_HOST = "psicoconecta-alb-1474977642.us-east-2.elb.amazonaws.com"; 
+const uint16_t SERVER_PORT = 80;
+const char* PATIENT_ID = "4"; // ID del paciente en la nube (ej. 4 para Justin Gutiérrez)
+const char* DEVICE_TOKEN = "PsicoConectaSecureToken2026"; // Llave de seguridad configurada en AWS
 
 // ---- CONFIGURACIÓN DE HARDWARE ----
 const int ANALOG_PIN = 34; // Pin G34 para el sensor cardíaco
@@ -108,9 +108,11 @@ void setup() {
   Serial.println("\n[WiFi] Conectado. IP obtenida: ");
   Serial.println(WiFi.localIP());
   
-  // Configuración del WebSocket
-  // Se concatena el device_token en los parámetros de consulta para la validación perimetral
-  String path = "/esp32?device_token=" + String(DEVICE_TOKEN);
+  // Configuración del WebSocket para AWS (con redirección /api/iot/*)
+  // El Load Balancer redirige /api/iot/* al microservicio de telemetría
+  // Nota: Puedes usar la ruta segmentada "/api/iot/ws/<cita_id>/esp32" si deseas pasar el ID de cita de forma explícita.
+  // La ruta general "/api/iot/esp32" asocia automáticamente los datos a la cita activa usando tu patient_id.
+  String path = "/api/iot/esp32?device_token=" + String(DEVICE_TOKEN);
   webSocket.begin(SERVER_HOST, SERVER_PORT, path.c_str());
   webSocket.onEvent(webSocketEvent);
   
