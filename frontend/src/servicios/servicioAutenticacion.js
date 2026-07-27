@@ -61,10 +61,11 @@ export const obtenerConfiguracionGoogle = () =>
   api.get(`${BASE}/google/configuracion`);
 
 export const rutaInicialPorRol = (rol) => {
+  const nombre = typeof rol === "object" ? rol?.name : rol;
   const rutas = {
     ADMIN: "/administrador",
     PSYCHOLOGIST: "/psicologo",
     PATIENT: "/paciente",
   };
-  return rutas[rol] || "/perfil";
+  return rutas[nombre] || "/login";
 };
