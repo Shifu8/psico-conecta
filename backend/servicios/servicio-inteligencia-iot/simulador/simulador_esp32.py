@@ -12,8 +12,8 @@ import time
 from datetime import datetime, timezone
 import websockets
 
-DEVICE_TOKEN = os.getenv("DEVICE_TOKEN", "PsicoConectaSecureToken2026")
-WEBSOCKET_URL = os.getenv("WEBSOCKET_URL", "ws://localhost:5006/ws/esp32")
+DEVICE_TOKEN = os.getenv("DEVICE_TOKEN", "esp32_secret_device_token_2026")
+WEBSOCKET_URL = os.getenv("WEBSOCKET_URL", "ws://localhost:5006/esp32")
 
 def generar_lectura_ppg(t, bpm=72):
     """
