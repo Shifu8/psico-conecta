@@ -2,19 +2,28 @@
   PsicoConecta - Firmware ESP32 para Telemetría de Pulsaciones Cardíacas
   
   Este sketch se conecta a una red WiFi, establece una conexión WebSocket
-  persistente con el servidor de telemetría (a través de Nginx), lee un sensor
-  analógico conectado al pin G34 cada 20ms (frecuencia de 50Hz) y envía los datos en tiempo real.
+  persistente con el servidor de telemetría en AWS (a través de Nginx en puerto 80),
+  lee un sensor analógico conectado al pin G34 cada 20ms (frecuencia de 50Hz)
+  y envía los datos en tiempo real.
   
   Si no hay un sensor físico conectado, genera una señal de electrocardiograma (ECG)
   simulada para facilitar las pruebas del dashboard.
+
+  ─────────────────────────────────────────────────────────────────
+  CONFIGURACIÓN RÁPIDA:
+    1. Cambia WIFI_SSID y WIFI_PASS con tu red WiFi.
+    2. Cambia SERVER_HOST con la IP pública o dominio de tu instancia AWS.
+    3. SERVER_PORT = 80  (Nginx escucha en puerto estándar HTTP).
+    4. La ruta /esp32 es manejada por Nginx y redirigida al WebSocket.
+  ─────────────────────────────────────────────────────────────────
 */
 
 #include <WiFi.h>
-#include <WebSocketsClient.h> // Librería de Links2004/arduinoWebSockets o similar
+#include <WebSocketsClient.h> // Librería de Links2004/arduinoWebSockets
 
-// ---- CONFIGURACIÓN DE RED Y SERVIDOR ----
-const char* WIFI_SSID = "marinerito";
-const char* WIFI_PASS = "123456789";
+// ---- CONFIGURACIÓN DE RED Y SERVIDOR ────────────────────────────────────────
+const char* WIFI_SSID       = "marinerito";           // <-- Tu red WiFi
+const char* WIFI_PASS       = "123456789";            // <-- Tu contraseña WiFi
 
 // Dirección y puerto del Load Balancer de AWS
 const char* SERVER_HOST = "psicoconecta-alb-1474977642.us-east-2.elb.amazonaws.com"; 
@@ -22,127 +31,178 @@ const uint16_t SERVER_PORT = 80;
 const char* PATIENT_ID = "4"; // ID del paciente en la nube (ej. 4 para Justin Gutiérrez)
 const char* DEVICE_TOKEN = "PsicoConectaSecureToken2026"; // Llave de seguridad configurada en AWS
 
-// ---- CONFIGURACIÓN DE HARDWARE ----
-const int ANALOG_PIN = 34; // Pin G34 para el sensor cardíaco
-const unsigned long INTERVALO_MUESTREO = 20; // 20ms = 50Hz
+// ---- CONFIGURACIÓN DE HARDWARE ──────────────────────────────────────────────
+const int ANALOG_PIN              = 34;   // Pin G34 para el sensor cardíaco (MAX30102 o similar)
+const unsigned long INTERVALO_MS  = 20;   // 20 ms = 50 Hz de muestreo
 
+// ---- VARIABLES DE ESTADO ────────────────────────────────────────────────────
 WebSocketsClient webSocket;
 unsigned long ultimoMuestreo = 0;
-bool websocketConectado = false;
+bool websocketConectado      = false;
+unsigned long ultimoReconexion = 0;
 
-// Variables para la simulación de ECG
-unsigned long simulacionTiempo = 0;
-
-// Generador de señal ECG simulada (QRS complex)
+// ─────────────────────────────────────────────────────────────────────────────
+//  GENERADOR DE SEÑAL ECG SIMULADA
+//  Produce un ciclo QRS completo de 1 segundo (60 lpm) con ondas P, QRS y T.
+//  Se activa automáticamente cuando no hay sensor físico conectado.
+// ─────────────────────────────────────────────────────────────────────────────
 int obtenerValorECGSimulado() {
-  unsigned long t = millis() % 1000; // Un ciclo cardíaco de 1 segundo (60 lpm)
-  int base = 2000; // Nivel base de la señal ADC (12 bits: 0-4095)
-  int ruido = random(-10, 10);
-  
+  unsigned long t    = millis() % 1000;   // Un ciclo cardíaco de 1 segundo
+  int base           = 2000;              // Nivel base ADC (12 bits: 0-4095)
+  int ruido          = random(-10, 10);
+
   if (t < 200) {
-    // Onda P (pequeña elevación)
-    return base + (int)(80 * sin((t / 200.0) * PI)) + ruido;
+    // Onda P: pequeña elevación suave
+    return base + (int)(80.0 * sin((t / 200.0) * PI)) + ruido;
+
   } else if (t < 280) {
-    // Retorno a base
+    // Segmento PR: retorno a la línea base
     return base + ruido;
+
   } else if (t < 300) {
-    // Onda Q (pequeño descenso)
+    // Onda Q: pequeño descenso antes del QRS
     return base - 100 + ruido;
+
   } else if (t < 330) {
-    // Onda R (gran pico positivo del QRS)
+    // Onda R: gran pico positivo del complejo QRS
     float prog = (t - 300) / 30.0;
-    return base + (int)(1500 * sin(prog * PI)) + ruido;
+    return base + (int)(1500.0 * sin(prog * PI)) + ruido;
+
   } else if (t < 360) {
-    // Onda S (descenso profundo)
+    // Onda S: descenso profundo post-QRS
     float prog = (t - 330) / 30.0;
-    return base - 350 + (int)(350 * cos(prog * PI)) + ruido;
+    return base - 350 + (int)(350.0 * cos(prog * PI)) + ruido;
+
   } else if (t < 450) {
-    // Retorno a base
+    // Segmento ST: retorno a la línea base
     return base + ruido;
+
   } else if (t < 600) {
-    // Onda T (elevación mediana)
+    // Onda T: elevación mediana de repolarización
     float prog = (t - 450) / 150.0;
-    return base + (int)(250 * sin(prog * PI)) + ruido;
+    return base + (int)(250.0 * sin(prog * PI)) + ruido;
+
   } else {
-    // Línea isoeléctrica
+    // Línea isoeléctrica (diástole)
     return base + ruido;
   }
 }
 
-// Manejador de eventos WebSocket
-void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
-  switch(type) {
+// ─────────────────────────────────────────────────────────────────────────────
+//  MANEJADOR DE EVENTOS WEBSOCKET
+// ─────────────────────────────────────────────────────────────────────────────
+void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
+  switch (type) {
     case WStype_DISCONNECTED:
-      Serial.println("[WS] Desconectado del servidor de telemetría.");
+      Serial.println("[WS] Desconectado del servidor. Reintentando en 5s...");
       websocketConectado = false;
       break;
+
     case WStype_CONNECTED:
-      Serial.printf("[WS] Conectado exitosamente a la ruta: %s\n", payload);
+      Serial.printf("[WS] Conectado exitosamente al servidor → ruta: %s\n", payload);
       websocketConectado = true;
+      // Enviar mensaje de handshake con el ID del paciente
+      {
+        String handshake = "{\"type\":\"hello\",\"patient_id\":\"" + String(PATIENT_ID) + "\",\"device\":\"ESP32\"}";
+        webSocket.sendTXT(handshake);
+      }
       break;
+
     case WStype_TEXT:
-      Serial.printf("[WS] Mensaje recibido del servidor: %s\n", payload);
+      Serial.printf("[WS] Servidor → %s\n", payload);
       break;
+
     case WStype_ERROR:
-      Serial.println("[WS] Error detectado.");
+      Serial.println("[WS] Error de conexión detectado.");
+      websocketConectado = false;
       break;
+
+    case WStype_PING:
+      Serial.println("[WS] Ping recibido del servidor.");
+      break;
+
+    case WStype_PONG:
+      Serial.println("[WS] Pong recibido.");
+      break;
+
     default:
       break;
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  SETUP
+// ─────────────────────────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
   delay(1000);
-  
+
   pinMode(ANALOG_PIN, INPUT);
-  
-  // Conexión WiFi
-  Serial.printf("\n[WiFi] Conectando a %s...\n", WIFI_SSID);
+  randomSeed(analogRead(35)); // Semilla de aleatoriedad con pin flotante
+
+  // ── Conexión WiFi ───────────────────────────────────────────────────────────
+  Serial.printf("\n[WiFi] Conectando a '%s'...\n", WIFI_SSID);
+  WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-  
-  while (WiFi.status() != WL_CONNECTED) {
+
+  int intentos = 0;
+  while (WiFi.status() != WL_CONNECTED && intentos < 30) {
     delay(500);
     Serial.print(".");
+    intentos++;
   }
   Serial.println("\n[WiFi] Conectado. IP obtenida: ");
   Serial.println(WiFi.localIP());
   
-  // Configuración del WebSocket para AWS (con redirección /api/iot/*)
-  // El Load Balancer redirige /api/iot/* al microservicio de telemetría
-  // Nota: Puedes usar la ruta segmentada "/api/iot/ws/<cita_id>/esp32" si deseas pasar el ID de cita de forma explícita.
-  // La ruta general "/api/iot/esp32" asocia automáticamente los datos a la cita activa usando tu patient_id.
-  String path = "/api/iot/esp32?device_token=" + String(DEVICE_TOKEN);
+  // Configuración del WebSocket
+  // Se concatena el device_token en los parámetros de consulta para la validación perimetral
+  String path = "/esp32?device_token=" + String(DEVICE_TOKEN);
   webSocket.begin(SERVER_HOST, SERVER_PORT, path.c_str());
   webSocket.onEvent(webSocketEvent);
-  
-  // Reconexión automática si se cae la conexión
-  webSocket.setReconnectInterval(5000);
+  webSocket.setReconnectInterval(5000);   // Reconexión automática cada 5s
+  webSocket.enableHeartbeat(15000, 3000, 2); // Ping cada 15s, pong en 3s, 2 reintentos
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  LOOP PRINCIPAL
+// ─────────────────────────────────────────────────────────────────────────────
 void loop() {
+  // Mantener la conexión WebSocket activa
   webSocket.loop();
-  
+
+  // Verificar conectividad WiFi periódicamente
+  if (WiFi.status() != WL_CONNECTED) {
+    unsigned long ahora = millis();
+    if (ahora - ultimoReconexion > 10000) {
+      ultimoReconexion = ahora;
+      Serial.println("[WiFi] Conexión perdida. Reconectando...");
+      WiFi.reconnect();
+    }
+    return;
+  }
+
+  // ── Muestreo a 50 Hz ─────────────────────────────────────────────────────
   unsigned long tiempoActual = millis();
-  if (tiempoActual - ultimoMuestreo >= INTERVALO_MUESTREO) {
+  if (tiempoActual - ultimoMuestreo >= INTERVALO_MS) {
     ultimoMuestreo = tiempoActual;
-    
-    // Leemos el sensor (si está conectado)
+
+    // Leer el sensor analógico (MAX30102 u otro)
     int valorLectura = analogRead(ANALOG_PIN);
-    
-    // Si la lectura es plana o cercana a cero (indicando que no hay sensor físico conectado),
-    // usamos la señal ECG simulada de alta resolución
+
+    // Si la lectura es plana (sin sensor físico), usar señal ECG simulada
     if (valorLectura < 100 || valorLectura > 4000) {
       valorLectura = obtenerValorECGSimulado();
     }
-    
-    // Solo enviamos datos si estamos conectados por WebSocket
+
+    // Solo transmitir si el WebSocket está activo
     if (websocketConectado) {
-      // Construcción del mensaje JSON de telemetría
-      String mensajeJson = "{\"patient_id\":\"" + String(PATIENT_ID) + 
-                           "\",\"raw_value\":" + String(valorLectura) + "}";
-      
-      webSocket.sendTXT(mensajeJson);
+      // JSON de telemetría:
+      // {"patient_id":"1","raw_value":2150,"ts":12345678}
+      String json = "{\"patient_id\":\"" + String(PATIENT_ID) + "\""
+                  + ",\"raw_value\":"   + String(valorLectura)
+                  + ",\"ts\":"          + String(tiempoActual)
+                  + "}";
+      webSocket.sendTXT(json);
     }
   }
 }
