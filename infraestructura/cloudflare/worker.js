@@ -94,13 +94,16 @@ const proxyApi = async (request) => {
 };
 
 export default {
-  async fetch(request) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === POSTHOG_PREFIX || url.pathname.startsWith(`${POSTHOG_PREFIX}/`)) {
       return proxyPostHog(request);
     }
     if (url.pathname === API_PREFIX || url.pathname.startsWith(`${API_PREFIX}/`)) {
       return proxyApi(request);
+    }
+    if (env && env.ASSETS) {
+      return env.ASSETS.fetch(request);
     }
     return new Response("Not found", { status: 404 });
   },
