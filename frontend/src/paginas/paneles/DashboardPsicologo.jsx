@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { usarAutenticacion } from "../../contexto/ContextoAutenticacion";
-import { ResponsiveContainer, LineChart, Line, YAxis } from "recharts";
 import { Activity, ArrowLeft, Wifi, WifiOff, Heart, AlertTriangle } from "lucide-react";
 import EncabezadoPanel from "./EncabezadoPanel";
 
@@ -134,12 +133,21 @@ export default function DashboardPsicologo() {
     };
   }, [patientId]);
 
-  const jsonParseSafe = (str) => {
-    try {
-      return JSON.parse(str);
-    } catch {
-      return null;
-    }
+  const generarPathSvg = (puntos) => {
+    if (!puntos || puntos.length === 0) return "M 0 150 L 800 150";
+    const valores = puntos.map((p) => p.valor);
+    const min = Math.min(...valores);
+    const max = Math.max(...valores);
+    const rango = max - min || 1;
+
+    const pasoX = 800 / Math.max(puntos.length - 1, 1);
+    return puntos
+      .map((p, i) => {
+        const x = (i * pasoX).toFixed(1);
+        const y = (280 - ((p.valor - min) / rango) * 260).toFixed(1);
+        return `${i === 0 ? "M" : "L"} ${x} ${y}`;
+      })
+      .join(" ");
   };
 
   return (
@@ -236,20 +244,18 @@ export default function DashboardPsicologo() {
             </p>
           </div>
         ) : (
-          <div className="h-96 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={datos} margin={{ top: 20, right: 5, left: -20, bottom: 5 }}>
-                <YAxis domain={["dataMin - 100", "dataMax + 100"]} hide />
-                <Line
-                  type="monotone"
-                  dataKey="valor"
-                  stroke="#ef4444"
-                  strokeWidth={2.5}
-                  dot={false}
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="h-96 w-full relative overflow-hidden rounded-2xl bg-slate-950 p-4 border border-slate-800">
+            <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] opacity-30"></div>
+            <svg className="h-full w-full relative z-10" viewBox="0 0 800 300" preserveAspectRatio="none">
+              <path
+                d={generarPathSvg(datos)}
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </div>
         )}
       </section>
