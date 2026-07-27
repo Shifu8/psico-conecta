@@ -1,11 +1,18 @@
-﻿# Archivo: aplicacion.py
-# Descripción: Punto de entrada principal e inicialización del servidor.
+# Archivo: aplicacion.py
+# Descripción: Punto de entrada principal e inicialización del servidor híbrido (Flask API + WebSocket Server).
 # Módulo: Servicio IoT
 
 import os
-
+import sys
+import asyncio
+from http import HTTPStatus
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+import websockets
+
+# Asegurar importación del módulo de telemetría
+sys.path.append(os.path.dirname(__file__))
+from telemetria.aplicacion import handler as ws_telemetria_handler, loop_limpieza_buffer
 
 app = Flask(__name__)
 CORS(app)
@@ -51,5 +58,39 @@ def configuracion_iot():
     )
 
 
+def handle_flask_request(path, method, headers_dict, body):
+    with app.test_client() as client:
+        res = client.open(path, method=method, headers=headers_dict, data=body)
+        resp_headers = [(k, v) for k, v in res.headers.items()]
+        return (HTTPStatus(res.status_code), resp_headers, res.data)
+
+
+async def process_request(path, request_headers):
+    # Si la petición incluye Upgrade: websocket, cedemos el control al handler de websockets
+    upgrade = request_headers.get("Upgrade", "").lower()
+    if upgrade == "websocket":
+        return None
+    
+    # De lo contrario, procesamos la petición HTTP REST con Flask
+    headers_dict = dict(request_headers)
+    method = request_headers.get("Method", "GET")
+    return handle_flask_request(path, method, headers_dict, b"")
+
+
+async def main():
+    port = int(os.getenv("PORT", "5005"))
+    print(f"[+] Iniciando servidor unificado de IoT (Flask API + WebSocket) en el puerto {port}...")
+    
+    # Iniciar persistencia asíncrona de fondo
+    asyncio.create_task(loop_limpieza_buffer())
+    
+    # Servidor híbrido en el puerto único expuesto por Docker/AWS
+    async with websockets.serve(ws_telemetria_handler, "0.0.0.0", port, process_request=process_request):
+        await asyncio.Future()
+
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5005")))
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n[-] Servidor unificado IoT detenido.")
