@@ -22,10 +22,19 @@ export default function DashboardPsicologo() {
 
   useEffect(() => {
     const token = localStorage.getItem("psicoconecta_token") || "";
-    const host = window.location.hostname;
+    const currentHost = window.location.hostname;
     
-    // Conectamos a través del reverse proxy de Nginx en el puerto 8080
-    const wsUrl = `ws://${host}:8080/api/telemetria/ws?token=${token}&patient_id=${patientId}`;
+    // Configuración dinámica del WebSocket (Local vs Producción AWS)
+    let wsUrl = "";
+    if (import.meta.env.VITE_IOT_WS_URL) {
+      wsUrl = `${import.meta.env.VITE_IOT_WS_URL}?token=${token}&patient_id=${patientId}`;
+    } else if (currentHost === "localhost" || currentHost === "127.0.0.1") {
+      wsUrl = `ws://${currentHost}:8080/api/telemetria/ws?token=${token}&patient_id=${patientId}`;
+    } else {
+      // Producción en Cloudflare / AWS
+      const albHost = "psicoconecta-alb-1474977642.us-east-2.elb.amazonaws.com";
+      wsUrl = `ws://${albHost}/api/iot/ws?token=${token}&patient_id=${patientId}`;
+    }
     
     console.log(`[WS] Conectando a ${wsUrl}`);
     const ws = new WebSocket(wsUrl);
@@ -38,7 +47,7 @@ export default function DashboardPsicologo() {
 
     ws.onmessage = (event) => {
       try {
-        const msg = jsonParseSafe(event.data);
+        const msg = JSON.parse(event.data);
         if (!msg) return;
 
         if (msg.type === "status") {
